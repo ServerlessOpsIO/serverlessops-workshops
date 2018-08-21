@@ -20,10 +20,6 @@ The Wild Rydes application has been broken down into three separate microservice
 
 ![Wild Rydes Microservices](../../images/wild-rydes-arch.png)
 
-
-## Serverless Framework serverless.yml
-
-
 ## Instructions
 
 ### 1. Deploy wild-rydes-ride-fleet
@@ -56,15 +52,39 @@ $ cd wild-rydes-ride-requests   # If not already in that directory
 $ sls info -v
 ```
 
+<details>
+<summary><strong>Output</strong></summary>
+<p>
+
+```
+Service Information
+service: wild-rydes-website
+stage: dev
+region: us-east-1
+stack: wild-rydes-website-dev
+api keys:
+  None
+endpoints:
+  None
+functions:
+  None
+
+Stack Outputs
+StaticSiteS3BucketName: wild-rydes-website-dev.dev.training.serverlessops.io
+StaticSiteS3BucketWebsiteURL: http://wild-rydes-website-dev.dev.training.serverlessops.io
+ServerlessDeploymentBucketName: wild-rydes-website-dev-serverlessdeploymentbucket-ou14fw4ivpm9
+```
+</p>
+</details>
+
 With the value obtained, update the file `static/js/config.js`
 ```
 $ cd wild-rydes-ride-website
 $ nano static/js/config.js
-
 ```
 
 Update the _api.invokeUrl_ value.
-```yaml
+```javascript
 window._config = {
     cognito: {
         userPoolId: '', // e.g. us-east-2_uXboG5pAb
@@ -90,9 +110,12 @@ $ sls deploy -v
 Navigate to the newly deployed application. In the output of the previous step, look for the _StaticSiteS3BucketWebsiteURL_ in _Stack Outputs_. This is the URL of the newly deployed application.  Navigate to it in a web browser. Request a ride and ensure the process is successful.
 
 
+![Wild Rydes Web Site](../images/wild-rydes-site.png)
+
+
 ### 5. Tail application logs
 
-Tail the application logs. Serverless Framework's `logs` command will poll and dump the RequestRide function's logs from CloudWatch to the terminal window.
+Tail the Lambda function logs from the wild-rydes-ride-requests service. Serverless Framework's `logs` command will poll and dump a Lambda function's logs from CloudWatch to the terminal window.
 
 Start by getting the functions in the application stack using Serverless Framework's `info` command.
 
@@ -105,23 +128,23 @@ $ sls info
 
 ```
 Service Information
-service: wild-rydes
+service: wild-rydes-ride-requests
 stage: dev
 region: us-east-1
-stack: wild-rydes-dev
+stack: wild-rydes-ride-requests-dev
 api keys:
   None
 endpoints:
   POST - https://a0wh3ig8vh.execute-api.us-east-1.amazonaws.com/dev/ride
 functions:
-  RequestRide: wild-rydes-dev-RequestRide
-  LoadTable: wild-rydes-dev-LoadTable
-  StaticSiteConfig: wild-rydes-dev-StaticSiteConfig
+  RequestRide: wild-rydes-ride-requests-dev-RequestRide
+  LoadTable: wild-rydes-ride-requests-dev-LoadTable
+  StaticSiteConfig: wild-rydes-ride-requests-dev-StaticSiteConfig
 ```
 </p>
 </details>
 
-The function's name is _RequestRide_. We'll ignore LoadTable and StaticSiteConfig for now.
+The function's name is _RequestRide_. We'll ignore LoadTable and _StaticSiteConfig_ for now.
 
 Begin tailing the `RequestRide` logs. This will show the log output from usage of the application in the previous step.
 
@@ -145,21 +168,6 @@ REPORT RequestId: 5c6c0221-a493-11e8-88e8-cd6d1f1b5e45  Duration: 214.69 ms     
 </details>
 
 If you received the error `No existing streams for the function` then either you did not request a ride in the previous step or logs have been delayed in reaching CloudWatch.
-```
-  Serverless Error ---------------------------------------
-
-  No existing streams for the function
-
-  Get Support --------------------------------------------
-     Docs:          docs.serverless.com
-     Bugs:          github.com/serverless/serverless/issues
-     Issues:        forum.serverless.com
-
-  Your Environment Information -----------------------------
-     OS:                     darwin
-     Node Version:           8.9.2
-     Serverless Version:     1.30.1
-```
 
 
 ### 6. Invoke function
