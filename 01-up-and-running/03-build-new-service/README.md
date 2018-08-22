@@ -127,6 +127,7 @@ Add a DynamoDB table to the project's _serverless.yml_ file. Your table should u
 <summary><strong>Hint</strong></summary>
 <p>
 If you're familiar with CloudFormation, you can reference the documentation here:
+
 * [CloudFormation AWS::DynamoDB::Table](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html)
 </p>
 </details>
@@ -328,6 +329,7 @@ This is what an example API Gateway event might look like. Look at the `body` ke
 <summary><strong>Hint 2</strong></summary>
 <p>
 This is the Python Boto3 dcumentation for working with a DynamoDB table.
+
 * [Boto3 DynamoDB.Table](https://boto3.readthedocs.io/en/latest/reference/services/dynamodb.html#table)
 </p>
 </details>
