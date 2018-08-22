@@ -19,7 +19,7 @@ The new service will be a RESTful API using API Gateway and AWS Lambda and it wr
 
 Below is an example web request to the new service. It has a unique `RideId`, the time of the request, and information about the unicorn dispatched to pickup the requester.
 
-```json
+```
 {
   'RequestTime': '2018-08-20 16:15:01.515825',
   'RideId': '30c565ea-a494-11e8-a910-425746ae81de',
@@ -133,7 +133,7 @@ If you're familiar with CloudFormation, you can reference the documentation here
 </details>
 
 <details>
-<summary><strong>Output</strong></summary>
+<summary><strong>Answer</strong></summary>
 <p>
 
 ```yaml
