@@ -144,7 +144,7 @@ functions:
 </p>
 </details>
 
-The function's name is _RequestRide_. We'll ignore LoadTable and _StaticSiteConfig_ for now.
+The function's name is under the _functions_ key and called _RequestRide_. We'll ignore LoadTable and _StaticSiteConfig_ for now.
 
 Begin tailing the `RequestRide` logs. This will show the log output from usage of the application in the previous step.
 
@@ -175,7 +175,7 @@ If you received the error `No existing streams for the function` then either you
 Invoke the _RequestRide_ function without going through the application frontend or API Gateway. The file _tests/events/request-ride-event.json_ is a mock API Gateway event that resembles the data that would be passed by API GAteway to the Lambda function.
 
 ```
-$ sls invoke -f RequestRide -p tests/events/request-ride-event.json
+$ sls invoke -f PostRideRecord -p tests/events/request-ride-event.json
 ```
 
 <details>
@@ -199,13 +199,38 @@ $ sls invoke -f RequestRide -p tests/events/request-ride-event.json
 ### 1. Service Discovery
 
 Q. How does wild-rydes-ride-requests know the wild-rydes-ride-fleet API endpoint?
+<details>
+<summary><strong>Answer</strong></summary>
+<p>
+
+</p>
+</details>
 
 Q. How does wild-rydes-ride-website know the wild-rydes-ride-requests API endpoint?
+<details>
+<summary><strong>Answer</strong></summary>
+<p>
+
+</p>
+</details>
 
 ### 2. Relationship between S3 bucket and Route53 record.
 
 Q. Explain the relationship between the S3 bucket and Route53 for DNS resolution. (Hint: Look at the bucket name and compare it with the Route53 record name.)
+<details>
+<summary><strong>Answer</strong></summary>
+<p>
+
+</p>
+</details>
 
 Q. Why doesn't the frontend use HTTPS?
+<details>
+<summary><strong>Answer</strong></summary>
+<p>
+
+The SSL certificate for S3 only supports Amazon S3's own domain names. To use an SSL cert with our own domain name we'dd need to use AWS CloudFront as our CDN and have it serve content from our S3 bucket. Deploying CloudFront can be time consuming so it was dropped from this module.
+</p>
+</details>
 
 

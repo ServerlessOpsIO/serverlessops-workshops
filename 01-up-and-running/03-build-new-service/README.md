@@ -5,7 +5,7 @@ In this module you'll create a new serverless service from start to finish.
 ## Goals and Objectives:
 
 **Objectives:**
-* Apply the lessons of the past two modules to create a new service
+* Apply the lessons of the past modules to create a new service
 
 **Goals:**
 * Build and deploy a new service
@@ -13,39 +13,53 @@ In this module you'll create a new serverless service from start to finish.
 ## Feature Request
 The Wild Rydes application dispatches rides but never records the rides dispatched. You'll create a new service that records rides requested.
 
-...Show new service...
+The new service will be a RESTful API using API Gateway and AWS Lambda and it writes data to a DynamoDB table.
 
-...Show event API...
+![wild-rydes-ride-record](../../wild-rydes-ride-record.png)
 
-## Serverless Framework Templates / serverless.yml
+Below is an example web request to the new service. It has a unique `RideId`, the time of the request, and information about the unicorn dispatched to pickup the requester.
 
-Serverless Framework requires a template to initialize a new project. While Serverless Framework has builtin templates, we provide our own which is available on GitHub.
-
-FIXME: Create a temoplate just for this workshop.
-[sls-aws-python-36](https://github.com/ServerlessOpsIO/sls-aws-python-36)
-
-The serverless.yml file is composed of 5 primary sections:
-* plugins
-* custom
-* provider
-* resources
-
+```json
+{
+  'RequestTime': '2018-08-20 16:15:01.515825',
+  'RideId': '30c565ea-a494-11e8-a910-425746ae81de',
+  'Unicorn': {
+    'Color': 'White',
+    'Name': 'Shadowfax'
+  }
+}
+```
 
 ## Instructions
 
-### 1. Initialize new project
+### 1. Create new project
 
-Initialize a new project using our project template.
+#### Initialize new project
+Initialize a new project using Serverless Framework. Serverless Framework requires a template for creating a new project. While you can use one of the built in templates, we've provided our own for this workshop that will be helpful if you're new to Serverless Framework or CloudFormation.
 
 ```
 $ sls create -n wild-rides-ride-record -p wild-rides-ride-record -u https://github.com/ServerlessOpsIO/wild-rides-ride-record-template
 ```
+<details>
+<summary><strong>output</strong></summary>
+<p>
 
-Now change into the newly created project and install the Serverless Framework plugins and initialize the Python virtualenv and install module dependencies.
+```
+Serverless: Generating boilerplate...
+Serverless: Downloading and installing "wild-rides-ride-record-template"...
+Serverless: Successfully installed "wild-rides-ride-record"
+```
+</p>
+</details>
 
+#### Install Serverless Framework plugins and application dependencies
+Now change into the newly created project and install the Serverless Framework plugins by running `npm install`. Because we're writing our function in Python we use a plugin called _serverless-python-requirements_ to bundle our function's module dependencies.
 ```
 $ cd wild-rides-ride-record
 $ npm install
+```
+Next, initialize the Python virtualenv and install module dependencies by running `npm run setup`. Our template we use has a setup run target in the `package.json` file to run the appropriate commands for you.
+```
 $ npm run setup
 ```
 
@@ -55,15 +69,22 @@ Now examine the newly created _serverless.yml_ file in your editor.
 <p>
 
 ```yaml
+
+# This is the name of service we'll be deploying. You'll see it in the AWS
+# Cloudfromation stack name.
 service: wild-rides-ride-record
 
+# 
 plugins:
   - serverless-python-requirements
 
-
+# Reuasable values and or plugin configuration.
 custom:
 
 
+# Serverless platform configuration.
+#
+# This service will be deployed to AWS and use the python 3.6 runtime.
 provider:
   name: aws
   runtime: python3.6
@@ -73,20 +94,25 @@ provider:
     LOG_LEVEL: "${env:LOG_LEVEL, 'INFO'}"
 
 
+# Lambda functions are configured here.
 functions:
-  PostRideRecord:
-    handler: handlers/action.handler
+  PutRideRecord:
+    handler: handlers/pust_ride_record.handler
     description: "Create Ride Record In Table"
     memorySize: 128
     timeout: 30
 
-resources:
-  Resources:
-    RideRecordTable:
-      Type: AWS::DynamoDB::Table
 
+# Addtional service resources and configuration.
+resources:
+  # Additional AWS resources , e.g. DynamoDB tables, S3 Buckets, etc, are
+  # configured here. For AWS, this is just CloudFormation configuration.
+  Resources:
+
+
+  # Configures CloudFormation stack outputs. These are often useful for
+  # reference by other stacks.
   Outputs:
-    RideRecordUrl:
 
 ```
 </p>
@@ -95,13 +121,18 @@ resources:
 ### 2. Write serverless.yml file
 
 #### Add DynamoDB Table
-Add a DynamoDB table to the serverless.yml file. Your table should use the RideId of the JSON document accepted by the API endpoint as a unique hash key.
-
-If you're familiar with CloudFormation, you can reference the documentation here:
-* [AWS::DynamoDB::Table](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html)
+Add a DynamoDB table to the project's _serverless.yml_ file. Your table should use the `RideId` of the JSON document accepted by the API endpoint as a unique hash key. Add the table in the section of the _serverless.yml_ where additional AWS resources go.
 
 <details>
 <summary><strong>Hint</strong></summary>
+<p>
+If you're familiar with CloudFormation, you can reference the documentation here:
+* [CloudFormation AWS::DynamoDB::Table](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html)
+</p>
+</details>
+
+<details>
+<summary><strong>Output</strong></summary>
 <p>
 
 ```yaml
@@ -132,10 +163,26 @@ resources:
 
 #### Add Function
 
-Add the configuration for the Lambda function. The function is triggered by an HTTP POST request to the `/record` endpoint. The function will need permission to write to the DynamoDB table and the function will need to know the name of the DynamoDB table.
+Add the configuration for the Lambda function. The function is triggered by an HTTP POST request to the `/record` endpoint. The function will need permission to write to the DynamoDB table and the function will need to know the name of the DynamoDB table. _(You can pass the DynanmoDB table name to the Lambda function as an environmental variable.)_
 
 <details>
 <summary><strong>Hint</strong></summary>
+<p>
+
+The following Serverless Framework docs will help:
+
+* [IAM role statements](https://serverless.com/framework/docs/providers/aws/guide/iam/)
+    * [DynamoDB IAM permissions](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/api-permissions-reference.html)
+* [API Gateway events](https://serverless.com/framework/docs/providers/aws/events/apigateway/) (Use an `http` event.)
+* [Function environmental variables](https://serverless.com/framework/docs/providers/aws/guide/functions/)
+    * Use the [CloudFormation AWS::DynamoDB::Table](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html) doc to figure out how to get the name.
+</p>
+</details>
+
+
+
+<details>
+<summary><strong>Answer</strong></summary>
 <p>
 
 ```yaml
@@ -156,8 +203,8 @@ provider:
           - Arn
 
 functions:
-  PostRideRecord:
-    handler: handlers/post_ride_record.handler
+  PutRideRecord:
+    handler: handlers/pust_ride_record.handler
     description: "Create Ride Record In Table"
     memorySize: 128
     timeout: 30
@@ -173,14 +220,20 @@ functions:
 </p>
 </details>
 
-#### Add stack output
-Add a CloudFormation stack output so other services can lookup the HTTP endpoint location of this service.
-
-The documentation for CloudFormation stack outputs is here:
-* [Cloudformation Outputs](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/outputs-section-structure.html)
+#### Add Stack Output
+Add a CloudFormation stack output so other services can lookup the HTTP endpoint location of this service. The stack output's export name should taake the form `|Name of service|-|Name of deployment stage|-RideRecordUrl`
 
 <details>
 <summary><strong>Hint</strong></summary>
+<p>
+The documentation for CloudFormation stack outputs is here:
+
+* [Cloudformation Outputs](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/outputs-section-structure.html)
+</p>
+</details>
+
+<details>
+<summary><strong>Answer</strong></summary>
 <p>
 
 ```yaml
@@ -204,10 +257,83 @@ The documentation for CloudFormation stack outputs is here:
 </details>
 
 ### 3. Write Lambda Function
-
+Update the file *handlers/pust_ride_record.py* (as referenced in step 2 by the functions.PutRideRecord.handler key) to take the body of the API Gateway event and insert it into your stack's DynamoDB table. (Remember in step 2 you set an environmental variable with the name of the DynamoDB table.)
 
 <details>
-<summary><strong>Hint</strong></summary>
+<summary><strong>Hint 1</strong></summary>
+<p>
+This is what an example API Gateway event might look like. Look at the `body` key.
+
+```json
+{
+    "resource": "/record",
+    "path": "/record",
+    "httpMethod": "POST",
+    "headers": {
+        "Accept": "*/*",
+        "CloudFront-Forwarded-Proto": "https",
+        "CloudFront-Is-Desktop-Viewer": "true",
+        "CloudFront-Is-Mobile-Viewer": "false",
+        "CloudFront-Is-SmartTV-Viewer": "false",
+        "CloudFront-Is-Tablet-Viewer": "false",
+        "CloudFront-Viewer-Country": "US",
+        "content-type": "application/json",
+        "Host": "6u0f8wo646.execute-api.us-east-1.amazonaws.com",
+        "User-Agent": "curl/7.54.0",
+        "Via": "2.0 488ca64b2230001b81f1cbf87d34963b.cloudfront.net (CloudFront)",
+        "X-Amz-Cf-Id": "EbJtXrattxCp_kGiAvOkZQfqrU7GaCnWQOBd_sqWLOu1CI3mg5hzew==",
+        "X-Amzn-Trace-Id": "Root=1-5b6e22fc-caa80860f02a362eda99cf9c",
+        "X-Forwarded-For": "73.17.175.174, 52.46.29.59",
+        "X-Forwarded-Port": "443",
+        "X-Forwarded-Proto": "https"
+    },
+    "queryStringParameters": null,
+    "pathParameters": null,
+    "stageVariables": null,
+    "requestContext": {
+        "resourceId": "spy0ia",
+        "resourcePath": "/record",
+        "httpMethod": "POST",
+        "extendedRequestId": "LbpnYHl3oAMFYUg=",
+        "requestTime": "10/Aug/2018:23:42:52 +0000",
+        "path": "/dev/record",
+        "accountId": "144121712529",
+        "protocol": "HTTP/1.1",
+        "stage": "dev",
+        "requestTimeEpoch": 1533944572060,
+        "requestId": "18bb8de3-9cf7-11e8-aa6f-eda086839e1d",
+        "identity": {
+            "cognitoIdentityPoolId": null,
+            "accountId": null,
+            "cognitoIdentityId": null,
+            "caller": null,
+            "sourceIp": "73.17.175.174",
+            "accessKey": null,
+            "cognitoAuthenticationType": null,
+            "cognitoAuthenticationProvider": null,
+            "userArn": null,
+            "userAgent": "curl/7.54.0",
+            "user": null
+        },
+        "apiId": "6u0f8wo646"
+    },
+    "body": "{\"RideId\": \"cb4e0e60-9c23-11e8-af29-8a060cb55967\", \"Unicorn\": {\"Name\": \"Bucephalus\", \"Color\": \"Golden\"}, \"RequestTime\": \"2018-08-09 22:30:18.347888\"}",
+    "isBase64Encoded": false
+}
+```
+</p>
+</details>
+
+<details>
+<summary><strong>Hint 2</strong></summary>
+<p>
+This is the Python Boto3 dcumentation for working with a DynamoDB table.
+* [Boto3 DynamoDB.Table](https://boto3.readthedocs.io/en/latest/reference/services/dynamodb.html#table)
+</p>
+</details>
+
+<details>
+<summary><strong>Answer</strong></summary>
 <p>
 
 ```python
@@ -272,14 +398,12 @@ $ sls deploy -v
 ### 5. Test
 Use `sls logs` and `sls invoke` to test your new service.
 
-Tail the application logs. Serverless Framework's `logs` command will poll and dump the RequestRide function's logs from CloudWatch to the terminal window.
-
-Start by getting the functions in the application stack using Serverless Framework's `info` command.
+#### Get function name
+(In case you forgot it already) Start by getting the functions in the application stack using Serverless Framework's `info` command.
 
 ```
 $ sls info
 ```
-
 
 <details>
 <summary><strong>Output</strong></summary>
@@ -296,10 +420,10 @@ api keys:
 endpoints:
   POST - https://wrqjqpc28d.execute-api.us-east-1.amazonaws.com/dev/record
 functions:
-  PostRideRecord: wild-rydes-ride-record-dev-PostRideRecord
+  PutRideRecord: wild-rydes-ride-record-dev-PutRideRecord
 
 Stack Outputs
-PostRideRecordLambdaFunctionQualifiedArn: arn:aws:lambda:us-east-1:144121712529:function:wild-rydes-ride-record-dev-PostRideRecord:7
+PutRideRecordLambdaFunctionQualifiedArn: arn:aws:lambda:us-east-1:144121712529:function:wild-rydes-ride-record-dev-PutRideRecord:7
 RideRecordUrl: https://wrqjqpc28d.execute-api.us-east-1.amazonaws.com/dev/record
 ServiceEndpoint: https://wrqjqpc28d.execute-api.us-east-1.amazonaws.com/dev
 ServerlessDeploymentBucketName: wild-rydes-ride-record-d-serverlessdeploymentbuck-1jc157gnh1ebi
@@ -307,24 +431,158 @@ ServerlessDeploymentBucketName: wild-rydes-ride-record-d-serverlessdeploymentbuc
 </p>
 </details>
 
+#### Invoke function
+Invoke the newly deployed function and ensure it works.
+```
+$ sls invoke -f PutRideRecord -p tests/events/put_ride_record.json
+```
+
+<details>
+<summary><strong>Output</strong></summary>
+<p>
+
+```json
+{
+    "statusCode": 201,
+    "body": "{\"success\": true}"
+}
+```
+</p>
+</details>
+
+#### Trail function logs (if needed)
+If you receive an error, check the `PutRideRecord` logs using `sls logs`.
+
+```
+$ sls logs -f PutRideRecord -t
+```
+
 ### 6. Update wild-rydes-ride-request service.
+Change to the wild-rydes-ride-request project
+
+```
+$ cd ../wild-rydes-ride-requests
+```
+
+#### Update wild-rydes-ride-record serverless.yml
+Now that wild-rydes-ride-record is ready for use, wild-rydes-ride-requests must send data to it. There's actually two simple ways of doing this. One is to use a CloudFormation function.  The other is to use Serverless Framework variable interpolation. The value you want to lookup was created in step 2's _"Add Stack Outputs"_ section.
 
 <details>
 <summary><strong>Hint</strong></summary>
 <p>
 
-```yaml
-```
+* [Serverless Framework variables](https://serverless.com/framework/docs/providers/aws/guide/variables/#reference-cloudformation-outputs)
+* [CloudFormation Functions](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/intrinsic-function-reference-importvalue.html)
 
 </p>
 </details>
 
 
+<details>
+<summary><strong>Answer</strong></summary>
+<p>
+
+```yaml
+custom:
+  stage: "${opt:stage, env:SLS_STAGE, 'dev'}"
+  profile: "${opt:aws-profile, env:AWS_PROFILE, env:AWS_DEFAULT_PROFILE, 'default'}"
+  log_level: "${env:LOG_LEVEL, 'INFO'}"
+
+  request_unicorn_url: "${cf:wild-rydes-ride-fleet-${self:custom.stage}.RequestUnicornUrl}"
+  ride_record_url: "${cf:wild-rydes-ride-record-${self:custom.stage}.RideRecordUrl}"
+
+```
+
+```
+functions:
+  RequestRide:
+    handler: handlers/request_ride.handler
+    description: "Request a ride."
+    memorySize: 128
+    timeout: 30
+    environment:
+      REQUEST_UNICORN_URL: "${self:custom.request_unicorn_url}"
+      RIDE_RECORD_URL: "${self:custom.ride_record_url}"
+    events:
+      - http:
+          path: /ride
+          method: post
+          cors: true
+```
+</p>
+</details>
+
+#### Update handlers/request_ride.py
+Update the fuynction so that it sends the ride response returned to the client to wild-rydes-ride-record as well.
+
+<details>
+<summary><strong>Answer</strong></summary>
+<p>
+
+```python
+'''Request a ride'''
+
+from datetime import datetime
+import logging
+import json
+import os
+import uuid
+
+from botocore.vendored import requests
+
+log_level = os.environ.get('LOG_LEVEL', 'INFO')
+logging.root.setLevel(logging.getLevelName(log_level))  # type:ignore
+_logger = logging.getLogger(__name__)
+
+REQUEST_UNICORN_URL = os.environ.get('REQUEST_UNICORN_URL')
+RIDE_RECORD_URL = os.environ.get('RIDE_RECORD_URL')
+```
+
+
+```python
+def _post_ride_record(ride, url=RIDE_RECORD_URL):
+    '''Record ride info'''
+    resp = requests.post(
+        url,
+        json=ride
+    )
+
+    return resp
+
+
+def handler(event, context):
+    '''Function entry'''
+    _logger.debug('Request: {}'.format(json.dumps(event)))
+
+    body = json.loads(event.get('body'))
+    pickup_location = _get_pickup_location(body)
+    ride_resp = _get_ride(pickup_location)
+    _post_ride_record(ride_resp)
+
+    resp = {
+        'statusCode': 201,
+        'body': json.dumps(ride_resp),
+        'headers': {
+            "Access-Control-Allow-Origin": "*",
+        }
+    }
+
+    _logger.debug(resp)
+    return resp
+```
+</p>
+</details>
+
+#### Deploy
+Deploy wild-rydes-ride-requests.
+
+```
+$ sls deploy -v
+```
+
 ## Questions
 
-### 1. Serverless Framework Plugins
-
-### 2. Parts of the serverless.yml file
+### 1. Parts of the serverless.yml file
 
 Q. What are the different sections of the file for?
 
@@ -333,4 +591,100 @@ Q. What are the different sections of the file for?
 * provider
 * resources
 
+### 2. Serverless Framework Plugins
 
+Q. What do we use to bundle our Python requirements? How is that configured.
+
+<details>
+<summary><strong>Answer</strong></summary>
+<p>
+
+
+</p>
+</details>
+
+### 3. DynamoDB
+
+Q. Name a scaling issue that might occur if our service becomes popular.
+
+<details>
+<summary><strong>Answer</strong></summary>
+<p>
+
+</p>
+</details>
+
+**Extra credit:** Implement DynamoDB autoscaling. You can use [serverless-dynamodb-autoscaling](https://github.com/sbstjn/serverless-dynamodb-autoscaling)
+
+### 4. AWS Lambda Function / API Gateway
+
+Q. What should you do to help ensure _PutRideRecord_ succeeds if the first write attempt to DynamoDB fails?
+<details>
+<summary><strong>Answer</strong></summary>
+<p>
+
+* Implement exponential back off in the function. However, you have only upt to 30s because API Gateway has a 30s timeout
+* Make DynamoDB scale more agressively.
+* Implement an SQS queue.
+
+</p>
+</details>
+
+Q. Why does the API Gateway event for wild-rydes-ride-records' _PutRideRecord_ have no CORS setup like wild-rydes-ride-requests, _RequestRide_ does?
+
+<details>
+<summary><strong>Hint</strong></summary>
+<p>
+
+* [Enable CORS for an API Gateway Resource](https://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-cors.html)
+</p>
+</details>
+
+<details>
+<summary><strong>Answer</strong></summary>
+<p>
+Requests from _RequestRide_ to _PutRideRecord_ are not from cross origin domains.  Requests to _RequestRide_ can be made from our front end which is served up via our own domain.
+</p>
+</details>
+
+
+### 5. Architecture
+
+Q. How might you have designed wild-rydes-ride-record to not use API Gateway? What alternative methods of triggering AWS Lmbda might you have used.
+<details>
+<summary><strong>Hint</strong></summary>
+<p>
+
+* [AWS Lambda event sources](https://docs.aws.amazon.com/lambda/latest/dg/invoking-lambda-function.html)
+</p>
+</details>
+
+<details>
+<summary><strong>Answer</strong></summary>
+<p>
+
+* SNS
+* SQS
+* Kinesis
+* Lambda invoke
+
+</p>
+</details>
+
+
+Q. What are the pros and cons of the different choices?
+
+<details>
+<summary><strong>Answer</strong></summary>
+<p>
+API Gateway adds an additional, charge that can be cost prohibitive at scale.
+
+However, if you're building a RESTful API that has additional operations (GET, PUT, DELETE) then you run the risk of there being multiple APIs for adding records.
+</p>
+</details>
+
+### 6. Service Discovery
+
+Q. What are some alternate methods of service discovery
+
+__Extra Credit:__ Implement one of them.
