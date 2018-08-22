@@ -15,7 +15,7 @@ The Wild Rydes application dispatches rides but never records the rides dispatch
 
 The new service will be a RESTful API using API Gateway and AWS Lambda and it writes data to a DynamoDB table.
 
-![wild-rydes-ride-record](../../wild-rydes-ride-record.png)
+![wild-rydes-ride-record](../../images/wild-rydes-ride-record.png)
 
 Below is an example web request to the new service. It has a unique `RideId`, the time of the request, and information about the unicorn dispatched to pickup the requester.
 
