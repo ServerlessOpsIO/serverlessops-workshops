@@ -224,6 +224,8 @@ Q. Explain the relationship between the S3 bucket and Route53 for DNS resolution
 </p>
 </details>
 
+### 3. Security
+
 Q. Why doesn't the frontend use HTTPS?
 <details>
 <summary><strong>Answer</strong></summary>
@@ -233,4 +235,15 @@ The SSL certificate for S3 only supports Amazon S3's own domain names. To use an
 </p>
 </details>
 
+Q. What are some security issues with this deployment.
+
+<details>
+<summary><strong>Answer</strong></summary>
+<p>
+
+* No account verification.
+* wild-rydes-ride-requests and wild-rides-ride-fleet APIs have no authentication and authorization on them
+
+</p>
+</details>
 

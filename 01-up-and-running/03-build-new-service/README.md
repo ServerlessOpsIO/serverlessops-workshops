@@ -74,7 +74,7 @@ Now examine the newly created _serverless.yml_ file in your editor.
 # Cloudfromation stack name.
 service: wild-rides-ride-record
 
-# 
+#
 plugins:
   - serverless-python-requirements
 
@@ -652,7 +652,7 @@ Requests from _RequestRide_ to _PutRideRecord_ are not from cross origin domains
 
 ### 5. Architecture
 
-Q. How might you have designed wild-rydes-ride-record to not use API Gateway? What alternative methods of triggering AWS Lmbda might you have used.
+Q. How might you have designed wild-rydes-ride-record to not use API Gateway? What alternative methods of triggering AWS Lambda might you have used.
 <details>
 <summary><strong>Hint</strong></summary>
 <p>
