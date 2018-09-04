@@ -37,7 +37,7 @@ Our tech stack is as follows.
 
 * [wild-rydes-website](https://github.com/ServerlessOpsIO/wild-rydes-website)
   * Front end website
-* [wild-rydes-ride-request](https://github.com/ServerlessOpsIO/wild-rydes-ride-request)
+* [wild-rydes-ride-requests](https://github.com/ServerlessOpsIO/wild-rydes-ride-requests)
   * Ride request backend
 * [wild-rydes-ride-fleet](https://github.com/ServerlessOpsIO/wild-rydes-ride-fleet)
   * Ride fleet management
