@@ -1,5 +1,7 @@
 # Serverless Workshops
 
+[![Join the chat at https://gitter.im/ServerlessOpsIO/serverlessops-workshops](https://badges.gitter.im/ServerlessOpsIO/serverlessops-workshops.svg)](https://gitter.im/ServerlessOpsIO/serverlessops-workshops?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 This repository contains the ServerlessOps training workshops. These workshops focus on providing the learner with the core skills to build serverless systems and applications.
 
 The workshops in this repository are:
