@@ -5,8 +5,8 @@ This workshop demonstrates a typical 3 tier serverless application. It also intr
 The modules in this workshop are:
 
 1) [Getting Started](./01-getting-started/README.md)
-1) Serverless Microservices
-1) Building A Serverless Service
+1) [Serverless Microservices](./02-microservices/README.md)
+1) [Building A Serverless Service](./03-build-new-service/README.md)
 
 
 ## Tech Stack

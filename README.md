@@ -43,9 +43,13 @@ docker pull serverlessops/training:latest
 #### 3. Start And Configure Container.
 
 To start the container, run the following command
-
 ```
 docker run -ti --rm serverlessops/training:latest
+```
+
+_Note: If launching this in a tmux or screen session, then pass in your environment’s TERM setting so certain keys behave as expected._
+```
+docker run -ti -e “TERM=${TERM}” --rm serverlessops/training:latest
 ```
 
 After you've started the container you'll be asked to fill in some workshop setup information. Enter a username for the stage name, along with your AWS access and secret keys. (If you're doing this as a part of a class you will have been provided these.)
