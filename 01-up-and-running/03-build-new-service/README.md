@@ -13,11 +13,9 @@ In this module you'll create a new serverless service from start to finish.
 ## Feature Request
 The Wild Rydes application dispatches rides but never records the rides dispatched. You'll create a new service that records rides requested.
 
-The new service will be a RESTful API using API Gateway and AWS Lambda and it writes data to a DynamoDB table.
-
 ![wild-rydes-ride-record](../../images/wild-rydes-ride-record.png)
 
-Below is an example web request to the new service. It has a unique `RideId`, the time of the request, and information about the unicorn dispatched to pickup the requester.
+The new service will be a RESTful API using API Gateway and AWS Lambda. Data sent via an HTTP POST request to the `/record` endpoint will be written to a DynamoDB table. Below is an example of the data in the web request to the new service. It has a unique `RideId`, the time of the request, and information about the unicorn dispatched to pickup the requester.
 
 ```
 {
@@ -35,10 +33,11 @@ Below is an example web request to the new service. It has a unique `RideId`, th
 ### 1. Create new project
 
 #### Initialize new project
-Initialize a new project using Serverless Framework. Serverless Framework requires a template for creating a new project. While you can use one of the built in templates, we've provided our own for this workshop that will be helpful if you're new to Serverless Framework or CloudFormation.
+Initialize a new project using Serverless Framework. Serverless Framework requires a template for creating a new project. While you can use one of the built in templates, we've provided our own for this workshop that will be helpful if you are new to Serverless Framework or CloudFormation.
 
 ```
-$ sls create -n wild-rides-ride-record -p wild-rides-ride-record -u https://github.com/ServerlessOpsIO/wild-rides-ride-record-template
+$ cd $WORKSPACE
+$ sls create -n wild-rydes-ryde-record -p wild-rydes-ride-record -u https://github.com/ServerlessOpsIO/wild-rydes-ride-record-template
 ```
 <details>
 <summary><strong>output</strong></summary>
@@ -46,8 +45,8 @@ $ sls create -n wild-rides-ride-record -p wild-rides-ride-record -u https://gith
 
 ```
 Serverless: Generating boilerplate...
-Serverless: Downloading and installing "wild-rides-ride-record-template"...
-Serverless: Successfully installed "wild-rides-ride-record"
+Serverless: Downloading and installing "wild-rydes-ride-record-template"...
+Serverless: Successfully installed "wild-rydes-ride-record"
 ```
 </p>
 </details>
@@ -55,14 +54,15 @@ Serverless: Successfully installed "wild-rides-ride-record"
 #### Install Serverless Framework plugins and application dependencies
 Now change into the newly created project and install the Serverless Framework plugins by running `npm install`. Because we're writing our function in Python we use a plugin called _serverless-python-requirements_ to bundle our function's module dependencies.
 ```
-$ cd wild-rides-ride-record
+$ cd wild-rydes-ride-record
 $ npm install
 ```
+<!-- pyenv is not yet working in our container
 Next, initialize the Python virtualenv and install module dependencies by running `npm run setup`. Our template we use has a setup run target in the `package.json` file to run the appropriate commands for you.
 ```
 $ npm run setup
 ```
-
+-->
 Now examine the newly created _serverless.yml_ file in your editor.
 <details>
 <summary><strong>serverless.yml file</strong></summary>
@@ -72,7 +72,7 @@ Now examine the newly created _serverless.yml_ file in your editor.
 
 # This is the name of service we'll be deploying. You'll see it in the AWS
 # Cloudfromation stack name.
-service: wild-rides-ride-record
+service: wild-rydes-ride-record
 
 #
 plugins:
@@ -97,7 +97,7 @@ provider:
 # Lambda functions are configured here.
 functions:
   PutRideRecord:
-    handler: handlers/pust_ride_record.handler
+    handler: handlers/put_ride_record.handler
     description: "Create Ride Record In Table"
     memorySize: 128
     timeout: 30
@@ -205,7 +205,7 @@ provider:
 
 functions:
   PutRideRecord:
-    handler: handlers/pust_ride_record.handler
+    handler: handlers/put_ride_record.handler
     description: "Create Ride Record In Table"
     memorySize: 128
     timeout: 30
@@ -222,7 +222,7 @@ functions:
 </details>
 
 #### Add Stack Output
-Add a CloudFormation stack output so other services can lookup the HTTP endpoint location of this service. The stack output's export name should taake the form `|Name of service|-|Name of deployment stage|-RideRecordUrl`
+Add a CloudFormation stack output so other services can lookup the HTTP endpoint location of this service. The stack output's export name should take the form `|Name of service|-|Name of deployment stage|-RideRecordUrl`
 
 <details>
 <summary><strong>Hint</strong></summary>
@@ -248,7 +248,7 @@ The documentation for CloudFormation stack outputs is here:
             - Ref: ApiGatewayRestApi
             - ".execute-api."
             - Ref: AWS::Region
-            - ".amazonaws.com/${self:custom.stage}"
+            - ".amazonaws.com/${self:provider.stage}"
             - "/record"
       Export:
         Name: "${self:service}-${self:provider.stage}-RideRecordUrl"
@@ -258,72 +258,16 @@ The documentation for CloudFormation stack outputs is here:
 </details>
 
 ### 3. Write Lambda Function
-Update the file *handlers/pust_ride_record.py* (as referenced in step 2 by the functions.PutRideRecord.handler key) to take the body of the API Gateway event and insert it into your stack's DynamoDB table. (Remember in step 2 you set an environmental variable with the name of the DynamoDB table.)
+Update the file [*handlers/put_ride_record.py*](https://github.com/ServerlessOpsIO/wild-rydes-ride-record-template/blob/master/handlers/put_ride_record.py) (as referenced in step 2 by the `functions.PutRideRecord.handler` key) to take the body of the API Gateway event and insert it into your stack's DynamoDB table. (Remember in step 2 you set an environmental variable with the name of the DynamoDB table.)
 
 <details>
 <summary><strong>Hint 1</strong></summary>
 <p>
-This is what an example API Gateway event might look like. Look at the `body` key.
 
-```json
-{
-    "resource": "/record",
-    "path": "/record",
-    "httpMethod": "POST",
-    "headers": {
-        "Accept": "*/*",
-        "CloudFront-Forwarded-Proto": "https",
-        "CloudFront-Is-Desktop-Viewer": "true",
-        "CloudFront-Is-Mobile-Viewer": "false",
-        "CloudFront-Is-SmartTV-Viewer": "false",
-        "CloudFront-Is-Tablet-Viewer": "false",
-        "CloudFront-Viewer-Country": "US",
-        "content-type": "application/json",
-        "Host": "6u0f8wo646.execute-api.us-east-1.amazonaws.com",
-        "User-Agent": "curl/7.54.0",
-        "Via": "2.0 488ca64b2230001b81f1cbf87d34963b.cloudfront.net (CloudFront)",
-        "X-Amz-Cf-Id": "EbJtXrattxCp_kGiAvOkZQfqrU7GaCnWQOBd_sqWLOu1CI3mg5hzew==",
-        "X-Amzn-Trace-Id": "Root=1-5b6e22fc-caa80860f02a362eda99cf9c",
-        "X-Forwarded-For": "73.17.175.174, 52.46.29.59",
-        "X-Forwarded-Port": "443",
-        "X-Forwarded-Proto": "https"
-    },
-    "queryStringParameters": null,
-    "pathParameters": null,
-    "stageVariables": null,
-    "requestContext": {
-        "resourceId": "spy0ia",
-        "resourcePath": "/record",
-        "httpMethod": "POST",
-        "extendedRequestId": "LbpnYHl3oAMFYUg=",
-        "requestTime": "10/Aug/2018:23:42:52 +0000",
-        "path": "/dev/record",
-        "accountId": "144121712529",
-        "protocol": "HTTP/1.1",
-        "stage": "dev",
-        "requestTimeEpoch": 1533944572060,
-        "requestId": "18bb8de3-9cf7-11e8-aa6f-eda086839e1d",
-        "identity": {
-            "cognitoIdentityPoolId": null,
-            "accountId": null,
-            "cognitoIdentityId": null,
-            "caller": null,
-            "sourceIp": "73.17.175.174",
-            "accessKey": null,
-            "cognitoAuthenticationType": null,
-            "cognitoAuthenticationProvider": null,
-            "userArn": null,
-            "userAgent": "curl/7.54.0",
-            "user": null
-        },
-        "apiId": "6u0f8wo646"
-    },
-    "body": "{\"RideId\": \"cb4e0e60-9c23-11e8-af29-8a060cb55967\", \"Unicorn\": {\"Name\": \"Bucephalus\", \"Color\": \"Golden\"}, \"RequestTime\": \"2018-08-09 22:30:18.347888\"}",
-    "isBase64Encoded": false
-}
-```
+Take a look at the sample event under [tests/events/put_ride_record.json](https://github.com/ServerlessOpsIO/wild-rydes-ride-record-template/blob/master/tests/events/put_ride_record.json). You want the contents of the `body` key.
 </p>
 </details>
+
 
 <details>
 <summary><strong>Hint 2</strong></summary>
@@ -353,7 +297,6 @@ _logger = logging.getLogger(__name__)
 
 # DynamoDB
 DDB_TABLE_NAME = os.environ.get('DDB_TABLE_NAME')
-DDB_TABLE_HASH_KEY = os.environ.get('DDB_TABLE_HASH_KEY')
 dynamodb = boto3.resource('dynamodb')
 DDT = dynamodb.Table(DDB_TABLE_NAME)
 
@@ -401,7 +344,7 @@ $ sls deploy -v
 Use `sls logs` and `sls invoke` to test your new service.
 
 #### Get function name
-(In case you forgot it already) Start by getting the functions in the application stack using Serverless Framework's `info` command.
+(In case you forgot it already) Start by getting the function name in the application stack using Serverless Framework's `info` command.
 
 ```
 $ sls info
@@ -463,11 +406,11 @@ $ sls logs -f PutRideRecord -t
 Change to the wild-rydes-ride-request project
 
 ```
-$ cd ../wild-rydes-ride-requests
+$ cd $WORKSHOP/wild-rydes-ride-requests
 ```
 
-#### Update wild-rydes-ride-record serverless.yml
-Now that wild-rydes-ride-record is ready for use, wild-rydes-ride-requests must send data to it. There's actually two simple ways of doing this. One is to use a CloudFormation function.  The other is to use Serverless Framework variable interpolation. The value you want to lookup was created in step 2's _"Add Stack Outputs"_ section.
+#### Update wild-rydes-ride-requests serverless.yml
+Now that _wild-rydes-ride-record_ is ready for use, _wild-rydes-ride-requests_ must send data to it. There's actually two simple ways of doing this. One is to use a CloudFormation function.  The other is to use Serverless Framework variable interpolation. The value you want to lookup was created in step 2's _"Add Stack Outputs"_ section.
 
 <details>
 <summary><strong>Hint</strong></summary>
@@ -515,7 +458,7 @@ functions:
 </details>
 
 #### Update handlers/request_ride.py
-Update the fuynction so that it sends the ride response returned to the client to wild-rydes-ride-record as well.
+Update the function so that it sends the ride response returned to the client to _wild-rydes-ride-record_ as well.
 
 <details>
 <summary><strong>Answer</strong></summary>
@@ -576,11 +519,89 @@ def handler(event, context):
 </details>
 
 #### Deploy
-Deploy wild-rydes-ride-requests.
+Deploy the updated _wild-rydes-ride-requests_.
 
 ```
 $ sls deploy -v
 ```
+
+<details>
+<summary><strong>Output</strong></summary>
+<p>
+
+```
+Serverless: Installing required Python packages with python3.6...
+Serverless: Linking required Python packages...
+Serverless: Packaging service...
+Serverless: Excluding development dependencies...
+Serverless: Unlinking required Python packages...
+Serverless: Uploading CloudFormation file to S3...
+Serverless: Uploading artifacts...
+Serverless: Uploading service .zip file to S3 (685.96 KB)...
+Serverless: Validating template...
+Serverless: Updating Stack...
+Serverless: Checking Stack update progress...
+CloudFormation - UPDATE_IN_PROGRESS - AWS::CloudFormation::Stack - wild-rydes-ride-requests-user0
+CloudFormation - UPDATE_IN_PROGRESS - AWS::Lambda::Function - RequestRideLambdaFunction
+CloudFormation - UPDATE_COMPLETE - AWS::Lambda::Function - RequestRideLambdaFunction
+CloudFormation - CREATE_IN_PROGRESS - AWS::Lambda::Version - RequestRideLambdaVersionPWHEEeJOACtlT4OWQuWph3fD3eMLcrWEksNdxHY
+CloudFormation - CREATE_IN_PROGRESS - AWS::Lambda::Version - RequestRideLambdaVersionPWHEEeJOACtlT4OWQuWph3fD3eMLcrWEksNdxHY
+CloudFormation - CREATE_COMPLETE - AWS::Lambda::Version - RequestRideLambdaVersionPWHEEeJOACtlT4OWQuWph3fD3eMLcrWEksNdxHY
+CloudFormation - CREATE_IN_PROGRESS - AWS::ApiGateway::Deployment - ApiGatewayDeployment1536196436682
+CloudFormation - CREATE_IN_PROGRESS - AWS::ApiGateway::Deployment - ApiGatewayDeployment1536196436682
+CloudFormation - CREATE_COMPLETE - AWS::ApiGateway::Deployment - ApiGatewayDeployment1536196436682
+CloudFormation - UPDATE_COMPLETE_CLEANUP_IN_PROGRESS - AWS::CloudFormation::Stack - wild-rydes-ride-requests-user0
+CloudFormation - DELETE_IN_PROGRESS - AWS::ApiGateway::Deployment - ApiGatewayDeployment1536106530082
+CloudFormation - DELETE_SKIPPED - AWS::Lambda::Version - RequestRideLambdaVersionisBKLJ0eSZXYeJUCjIedT9zHO0OESUxofBjG6Tk9i6Q
+CloudFormation - DELETE_COMPLETE - AWS::ApiGateway::Deployment - ApiGatewayDeployment1536106530082
+CloudFormation - UPDATE_COMPLETE - AWS::CloudFormation::Stack - wild-rydes-ride-requests-user0
+Serverless: Stack update finished...
+Service Information
+service: wild-rydes-ride-requests
+stage: user0
+region: us-east-1
+stack: wild-rydes-ride-requests-user0
+api keys:
+  None
+endpoints:
+  POST - https://wnpas528o7.execute-api.us-east-1.amazonaws.com/user0/ride
+functions:
+  RequestRide: wild-rydes-ride-requests-user0-RequestRide
+
+Stack Outputs
+RequestRideLambdaFunctionQualifiedArn: arn:aws:lambda:us-east-1:144121712529:function:wild-rydes-ride-requests-user0-RequestRide:7
+ServiceEndpoint: https://wnpas528o7.execute-api.us-east-1.amazonaws.com/user0
+ServerlessDeploymentBucketName: wild-rydes-ride-requests-serverlessdeploymentbuck-elxo1iezzmsw
+RequestRideUrl: https://wnpas528o7.execute-api.us-east-1.amazonaws.com/user0/ride
+```
+</p>
+</details>
+
+
+#### Test updated wild-rydes-ride-requests
+
+Invoke _wild-rydes-ride-requests_ _RequestRide_ function and ensure you receive a successful response.
+
+```
+$ sls invoke -f RequestRide -p tests/events/request-ride-event.json
+```
+
+<details>
+<summary><strong>Output</strong></summary>
+<p>
+
+```json
+{
+    "statusCode": 201,
+    "body": "{\"RideId\": \"f59380c4-b172-11e8-b5d7-f669e247359d\", \"Unicorn\": {\"Color\": \"Yellow\", \"Name\": \"Rocinante\"}, \"RequestTime\": \"2018-09-06 01:19:53.927290\"}",
+    "headers": {
+        "Access-Control-Allow-Origin": "*"
+    }
+}
+```
+</p>
+</details>
+
 
 ## Questions
 
