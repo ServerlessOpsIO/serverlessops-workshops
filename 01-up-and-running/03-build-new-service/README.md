@@ -607,22 +607,62 @@ $ sls invoke -f RequestRide -p tests/events/request-ride-event.json
 
 ### 1. Parts of the serverless.yml file
 
-Q. What are the different sections of the file for?
+Q. What are the different sections of the _serverless.yml_ file for?
 
 * plugins
 * custom
 * provider
 * resources
 
-### 2. Serverless Framework Plugins
+<details>
+<summary><strong>Hint</strong></summary>
+<p>
 
-Q. What do we use to bundle our Python requirements? How is that configured.
+**plugins:** https://serverless.com/framework/docs/providers/aws/guide/plugins/
+
+**custom:** What are we setting in that section?
+
+**provider:** https://serverless.com/framework/docs/providers/
+
+**resources:** https://serverless.com/framework/docs/providers/aws/guide/resources/
+
+</p>
+</details>
 
 <details>
 <summary><strong>Answer</strong></summary>
 <p>
 
+**plugins:** Serverless Framework's core functionality can be extended by the use of plugins. In this section we list the plugins a service requires. 
 
+**custom:** This section is uusally used for two purposes
+
+1) Defining variables that will be used elsewhere in the file
+1) Plugin configuration.
+
+**provider:** This is where we configure the service for the serverless provider the service is to be deployed.
+
+**resources:** Some AWS serverless systems require more than AWS Lambda. This section is where we configure those resources using [AWS CLoudFormation](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-template-resource-type-ref.html).
+</p>
+</details>
+
+
+### 2. Serverless Framework Plugins
+
+Q. What do we use to bundle our Python requirements? How is that configured.
+<details>
+<summary><strong>Hint</strong></summary>
+<p>
+
+Look at the plugins section of _serverless.yml_.
+</p>
+</details>
+
+<details>
+<summary><strong>Answer</strong></summary>
+<p>
+
+Our services that use Python, _wild-rydes-ride-requests_, _wild-rydes-ride-fleet_, and _wild-rydes-ride-record_, utilize the [_serverless-python-requirements_](https://www.npmjs.com/package/serverless-python-requirements) plugin. Before deploying, this cause Serverless Framework to fetch the dependencies listed in the _requirements.txt_ file of the service and they are then included in the artifact deployed to AWS Lambda.
 </p>
 </details>
 
@@ -631,14 +671,26 @@ Q. What do we use to bundle our Python requirements? How is that configured.
 Q. Name a scaling issue that might occur if our service becomes popular.
 
 <details>
+<summary><strong>Hint</strong></summary>
+<p>
+
+* [DynamoDB Throughput Capacity for Reads and Writes](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/HowItWorks.ProvisionedThroughput.html)
+</p>
+</details>
+
+<details>
 <summary><strong>Answer</strong></summary>
 <p>
 
+Our DynamoDB tables have a fixed capacity for reads and writes. As our application usage grows we are likely to see table operation throttled.
+
+Take a look at [_serverless-dynamodb-autoscaling_](https://www.npmjs.com/package/serverless-dynamodb-autoscaling) for setting up DynamoDB autoscaling.
 </p>
 </details>
 
 **Extra credit:** Implement DynamoDB autoscaling. You can use [serverless-dynamodb-autoscaling](https://github.com/sbstjn/serverless-dynamodb-autoscaling)
 
+<!--
 ### 4. AWS Lambda Function / API Gateway
 
 Q. What should you do to help ensure _PutRideRecord_ succeeds if the first write attempt to DynamoDB fails?
@@ -708,6 +760,7 @@ However, if you're building a RESTful API that has additional operations (GET, P
 
 ### 6. Service Discovery
 
-Q. What are some alternate methods of service discovery
+Q. What are some alternate methods of service discovery? (See previous module.)
 
 __Extra Credit:__ Implement one of them.
+-->

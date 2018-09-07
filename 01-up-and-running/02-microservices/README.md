@@ -505,29 +505,126 @@ $ sls invoke -f RequestRide -p tests/events/request-ride-event.json
 
 ### 1. Service Discovery
 
-Q. How does wild-rydes-ride-requests know the wild-rydes-ride-fleet API endpoint?
+Q. How does _wild-rydes-ride-requests_ know the _wild-rydes-ride-fleet_ API endpoint?
+
+In _wild-rydes-website_ we manually set this with a configuration file. But for _wild-rydes-ride-requests_ we made no manual configuration.
+
+<details>
+<summary><strong>Hint</strong></summary>
+<p>
+
+Serverless Framework has a variety of ways to declare variables.
+
+* [Serverless Framework - Variables](https://serverless.com/framework/docs/providers/aws/guide/variables/)
+</p>
+</details>
+
 <details>
 <summary><strong>Answer</strong></summary>
 <p>
 
+In the [serverless.yml]() file for _wild-rydes-ride-requests_ we lookup the RequestUnicornUrl CloudFormation stack output for the _wild-rydes-ride-fleet_ service.
+
+```yaml
+custom:
+  stage: "${opt:stage, env:SLS_STAGE, 'dev'}"
+  profile: "${opt:aws-profile, env:AWS_PROFILE, env:AWS_DEFAULT_PROFILE, 'default'}"
+  log_level: "${env:LOG_LEVEL, 'INFO'}"
+
+  request_unicorn_url: "${cf:wild-rydes-ride-fleet-${self:custom.stage}.RequestUnicornUrl}"
+```
+
+Further down in the functions section we set an environmental variable called *REQUEST_UNICORN_URL*.
+```yaml
+functions:
+  RequestRide:
+    handler: handlers/request_ride.handler
+    description: "Request a ride."
+    memorySize: 128
+    timeout: 30
+    environment:
+      REQUEST_UNICORN_URL: "${self:custom.request_unicorn_url}"
+    events:
+      - http:
+          path: /ride
+          method: post
+          cors: true
+```
+
+Finally, *handlers/request_ride.py* reads that environmental variable on startup.
+
+```python
+REQUEST_UNICORN_URL = os.environ.get('REQUEST_UNICORN_URL')
+
+def _get_unicorn(url=REQUEST_UNICORN_URL):
+    '''Return a unicorn from the fleet'''
+    unicorn = requests.get(REQUEST_UNICORN_URL)
+    return unicorn.json()
+```
 </p>
 </details>
 
-Q. How does wild-rydes-ride-website know the wild-rydes-ride-requests API endpoint?
+
+Q. Name an alternative method of service discovery using only AWS services.
 <details>
 <summary><strong>Answer</strong></summary>
 <p>
-
+The [AWS Systems Manager Parameter Store](https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-paramstore.html) service is one way if storing this information. This service let's you store key/value pairs which can be looked up using using [Serverless Framework](https://serverless.com/framework/docs/providers/aws/guide/variables/#reference-variables-using-the-ssm-parameter-store). You can even have a service create a key/value pair using [CloudFormation](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ssm-parameter.html).
 </p>
 </details>
+
+**Extra Credit:** Implement the solution to the previous question.
 
 ### 2. Relationship between S3 bucket and Route53 record.
 
 Q. Explain the relationship between the S3 bucket and Route53 for DNS resolution. (Hint: Look at the bucket name and compare it with the Route53 record name.)
 <details>
+<summary><strong>Hint</strong></summary>
+<p>
+
+* [Setting up a Static Website Using a Custom Domain](https://docs.aws.amazon.com/AmazonS3/latest/dev/website-hosting-custom-domain-walkthrough.html)
+</p>
+</details>
+
+<details>
 <summary><strong>Answer</strong></summary>
 <p>
 
+Our website frontend uses S3's static website hosting capabilities. This requires the name of the S3 bucket to be a fully qualified domain name and for is to create a DNS record on a Route53 zone of ours.
+
+The relevant _serverless.yml_ configuration is here:
+
+```yaml
+custom:
+  hostedZoneName: "${env:SLS_HOSTED_ZONE_NAME, 'dev.training.serverlessops.io'}"
+  bucketName: "${self:service}-${self:custom.stage}.${self:custom.hostedZoneName}"
+```
+
+```yaml
+    StaticSite:
+      Type: AWS::S3::Bucket
+      Properties:
+        AccessControl: PublicRead
+        BucketName: ${self:custom.bucketName}
+        WebsiteConfiguration:
+          IndexDocument: index.html
+          ErrorDocument: error.html
+```
+
+```yaml
+    DnsRecord:
+      Type: "AWS::Route53::RecordSet"
+      Properties:
+        AliasTarget:
+          DNSName: s3-website-us-east-1.amazonaws.com
+          # Additional region zone IDs and DNS names found here:
+          # https://docs.aws.amazon.com/general/latest/gr/rande.html#s3_region
+          HostedZoneId: Z3AQBSTGFYJSTF    # us-east-1
+        HostedZoneName: ${self:custom.hostedZoneName}.
+        Name:
+          Ref: StaticSite
+        Type: 'A'
+```
 </p>
 </details>
 
@@ -538,18 +635,20 @@ Q. Why doesn't the frontend use HTTPS?
 <summary><strong>Answer</strong></summary>
 <p>
 
-The SSL certificate for S3 only supports Amazon S3's own domain names. To use an SSL cert with our own domain name we'dd need to use AWS CloudFront as our CDN and have it serve content from our S3 bucket. Deploying CloudFront can be time consuming so it was dropped from this module.
+The SSL certificate for S3 only supports Amazon S3's own domain names. To use an SSL cert with our own domain name we'd need to use AWS CloudFront as our CDN and have it serve content from our S3 bucket. Deploying CloudFront can be time consuming so it was dropped from this module.
 </p>
 </details>
 
-Q. What are some security issues with this deployment.
+Q. What are some security issues with this application deployment.
 
 <details>
 <summary><strong>Answer</strong></summary>
 <p>
+Some of note are:
 
-* No account verification.
-* wild-rydes-ride-requests and wild-rides-ride-fleet APIs have no authentication and authorization on them
+* There's no account verification or even signup.
+* _wild-rydes-ride-requests_ and _wild-rides-ride-fleet_ APIs have no authentication and authorization on them.
+* the aforementioned lack of SSL.
 
 </p>
 </details>
