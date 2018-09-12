@@ -569,6 +569,7 @@ Q. Name an alternative method of service discovery using only AWS services.
 <details>
 <summary><strong>Answer</strong></summary>
 <p>
+
 The [AWS Systems Manager Parameter Store](https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-paramstore.html) service is one way if storing this information. This service let's you store key/value pairs which can be looked up using using [Serverless Framework](https://serverless.com/framework/docs/providers/aws/guide/variables/#reference-variables-using-the-ssm-parameter-store). You can even have a service create a key/value pair using [CloudFormation](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ssm-parameter.html).
 </p>
 </details>

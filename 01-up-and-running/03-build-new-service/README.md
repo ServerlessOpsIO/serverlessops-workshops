@@ -633,7 +633,7 @@ Q. What are the different sections of the _serverless.yml_ file for?
 <summary><strong>Answer</strong></summary>
 <p>
 
-**plugins:** Serverless Framework's core functionality can be extended by the use of plugins. In this section we list the plugins a service requires. 
+**plugins:** Serverless Framework's core functionality can be extended by the use of plugins. In this section we list the plugins a service requires.
 
 **custom:** This section is uusally used for two purposes
 
