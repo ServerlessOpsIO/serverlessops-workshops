@@ -1,4 +1,4 @@
-# Serverless Microservices
+# Serverless Deploy And Run
 
 In this module we'll breakdown the Wild Rydes application into three separate microservices.
 
@@ -14,11 +14,10 @@ Both microservices and monolith are valid serverless architecture choices. We us
 
 ## Tech Stack
 
-The Wild Rydes application has been broken down into three separate microservices. They are:
+The Wild Rydes application has been broken down into two separate services. They are:
 
-* [wild-rydes-website](https://github.com/ServerlessOpsIO/wild-rydes-website) (frontend)
-* [wild-rydes-ride-requests](https://github.com/ServerlessOpsIO/wild-rydes-ride-requests) (backend)
-* [wild-rydes-ride-fleet](https://github.com/ServerlessOpsIO/wild-rydes-ride-fleet) (backend / data layer)
+* [wild-rydes](https://github.com/ServerlessOpsIO/wild-rydes) - frontend website and ride request service.
+* [wild-rydes-ride-fleet](https://github.com/ServerlessOpsIO/wild-rydes-ride-fleet) - Manages the available ride fleet.
 
 ![Wild Rydes Microservices](../../images/wild-rydes-arch.png)
 
