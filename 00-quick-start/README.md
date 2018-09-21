@@ -34,6 +34,7 @@ Clone the _wild-rydes_ application from GitHub that we'll deploying.
 
 ```
 $ git clone https://github.com/ServerlessOpsIO/wild-rydes.git
+$ git checkout quick-start
 ```
 
 <details>
@@ -41,11 +42,15 @@ $ git clone https://github.com/ServerlessOpsIO/wild-rydes.git
 <p>
 
 ```
+$ git clone https://github.com/ServerlessOpsIO/wild-rydes.git
 Cloning into 'wild-rydes'...
 remote: Counting objects: 157, done.
 remote: Total 157 (delta 0), reused 0 (delta 0), pack-reused 157
 Receiving objects: 100% (157/157), 9.46 MiB | 2.56 MiB/s, done.
 Resolving deltas: 100% (31/31), done.
+
+$ git checkout quick-start
+Switched to branch 'master'
 ```
 </p>
 </details>

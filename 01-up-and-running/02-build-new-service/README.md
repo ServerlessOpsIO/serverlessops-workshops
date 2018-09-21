@@ -402,15 +402,15 @@ If you receive an error, check the `PutRideRecord` logs using `sls logs`.
 $ sls logs -f PutRideRecord -t
 ```
 
-### 6. Update wild-rydes-ride-request service.
-Change to the wild-rydes-ride-request project
+### 6. Update wild-rydes service.
+Change to the wild-rydes project
 
 ```
-$ cd $WORKSHOP/wild-rydes-ride-requests
+$ cd $WORKSHOP/wild-rydes
 ```
 
-#### Update wild-rydes-ride-requests serverless.yml
-Now that _wild-rydes-ride-record_ is ready for use, _wild-rydes-ride-requests_ must send data to it. There's actually two simple ways of doing this. One is to use a CloudFormation function.  The other is to use Serverless Framework variable interpolation. The value you want to lookup was created in step 2's _"Add Stack Outputs"_ section.
+#### Update wild-rydes serverless.yml
+Now that _wild-rydes-ride-record_ is ready for use, _wild-rydes_ must send data to it. There's actually two simple ways of doing this. One is to use a CloudFormation function.  The other is to use Serverless Framework variable interpolation. The value you want to lookup was created in step 2's _"Add Stack Outputs"_ section.
 
 <details>
 <summary><strong>Hint</strong></summary>
@@ -519,7 +519,7 @@ def handler(event, context):
 </details>
 
 #### Deploy
-Deploy the updated _wild-rydes-ride-requests_.
+Deploy the updated _wild-rydes_.
 
 ```
 $ sls deploy -v
@@ -541,7 +541,7 @@ Serverless: Uploading service .zip file to S3 (685.96 KB)...
 Serverless: Validating template...
 Serverless: Updating Stack...
 Serverless: Checking Stack update progress...
-CloudFormation - UPDATE_IN_PROGRESS - AWS::CloudFormation::Stack - wild-rydes-ride-requests-user0
+CloudFormation - UPDATE_IN_PROGRESS - AWS::CloudFormation::Stack - wild-rydes-user0
 CloudFormation - UPDATE_IN_PROGRESS - AWS::Lambda::Function - RequestRideLambdaFunction
 CloudFormation - UPDATE_COMPLETE - AWS::Lambda::Function - RequestRideLambdaFunction
 CloudFormation - CREATE_IN_PROGRESS - AWS::Lambda::Version - RequestRideLambdaVersionPWHEEeJOACtlT4OWQuWph3fD3eMLcrWEksNdxHY
@@ -550,37 +550,37 @@ CloudFormation - CREATE_COMPLETE - AWS::Lambda::Version - RequestRideLambdaVersi
 CloudFormation - CREATE_IN_PROGRESS - AWS::ApiGateway::Deployment - ApiGatewayDeployment1536196436682
 CloudFormation - CREATE_IN_PROGRESS - AWS::ApiGateway::Deployment - ApiGatewayDeployment1536196436682
 CloudFormation - CREATE_COMPLETE - AWS::ApiGateway::Deployment - ApiGatewayDeployment1536196436682
-CloudFormation - UPDATE_COMPLETE_CLEANUP_IN_PROGRESS - AWS::CloudFormation::Stack - wild-rydes-ride-requests-user0
+CloudFormation - UPDATE_COMPLETE_CLEANUP_IN_PROGRESS - AWS::CloudFormation::Stack - wild-rydes-user0
 CloudFormation - DELETE_IN_PROGRESS - AWS::ApiGateway::Deployment - ApiGatewayDeployment1536106530082
 CloudFormation - DELETE_SKIPPED - AWS::Lambda::Version - RequestRideLambdaVersionisBKLJ0eSZXYeJUCjIedT9zHO0OESUxofBjG6Tk9i6Q
 CloudFormation - DELETE_COMPLETE - AWS::ApiGateway::Deployment - ApiGatewayDeployment1536106530082
-CloudFormation - UPDATE_COMPLETE - AWS::CloudFormation::Stack - wild-rydes-ride-requests-user0
+CloudFormation - UPDATE_COMPLETE - AWS::CloudFormation::Stack - wild-rydes-user0
 Serverless: Stack update finished...
 Service Information
-service: wild-rydes-ride-requests
+service: wild-rydes
 stage: user0
 region: us-east-1
-stack: wild-rydes-ride-requests-user0
+stack: wild-rydes-user0
 api keys:
   None
 endpoints:
   POST - https://wnpas528o7.execute-api.us-east-1.amazonaws.com/user0/ride
 functions:
-  RequestRide: wild-rydes-ride-requests-user0-RequestRide
+  RequestRide: wild-rydes-user0-RequestRide
 
 Stack Outputs
-RequestRideLambdaFunctionQualifiedArn: arn:aws:lambda:us-east-1:144121712529:function:wild-rydes-ride-requests-user0-RequestRide:7
+RequestRideLambdaFunctionQualifiedArn: arn:aws:lambda:us-east-1:144121712529:function:wild-rydes-user0-RequestRide:7
 ServiceEndpoint: https://wnpas528o7.execute-api.us-east-1.amazonaws.com/user0
-ServerlessDeploymentBucketName: wild-rydes-ride-requests-serverlessdeploymentbuck-elxo1iezzmsw
+ServerlessDeploymentBucketName: wild-rydes-serverlessdeploymentbuck-elxo1iezzmsw
 RequestRideUrl: https://wnpas528o7.execute-api.us-east-1.amazonaws.com/user0/ride
 ```
 </p>
 </details>
 
 
-#### Test updated wild-rydes-ride-requests
+#### Test updated wild-rydes
 
-Invoke _wild-rydes-ride-requests_ _RequestRide_ function and ensure you receive a successful response.
+Invoke _wild-rydes_ _RequestRide_ function and ensure you receive a successful response.
 
 ```
 $ sls invoke -f RequestRide -p tests/events/request-ride-event.json
@@ -662,7 +662,7 @@ Look at the plugins section of _serverless.yml_.
 <summary><strong>Answer</strong></summary>
 <p>
 
-Our services that use Python, _wild-rydes-ride-requests_, _wild-rydes-ride-fleet_, and _wild-rydes-ride-record_, utilize the [_serverless-python-requirements_](https://www.npmjs.com/package/serverless-python-requirements) plugin. Before deploying, this cause Serverless Framework to fetch the dependencies listed in the _requirements.txt_ file of the service and they are then included in the artifact deployed to AWS Lambda.
+Our services that use Python, _wild-rydes_, _wild-rydes-ride-fleet_, and _wild-rydes-ride-record_, utilize the [_serverless-python-requirements_](https://www.npmjs.com/package/serverless-python-requirements) plugin. Before deploying, this cause Serverless Framework to fetch the dependencies listed in the _requirements.txt_ file of the service and they are then included in the artifact deployed to AWS Lambda.
 </p>
 </details>
 
@@ -705,7 +705,7 @@ Q. What should you do to help ensure _PutRideRecord_ succeeds if the first write
 </p>
 </details>
 
-Q. Why does the API Gateway event for wild-rydes-ride-records' _PutRideRecord_ have no CORS setup like wild-rydes-ride-requests, _RequestRide_ does?
+Q. Why does the API Gateway event for wild-rydes-ride-records' _PutRideRecord_ have no CORS setup like wild-rydes, _RequestRide_ does?
 
 <details>
 <summary><strong>Hint</strong></summary>
