@@ -36,7 +36,7 @@ The new service will be a RESTful API using API Gateway and AWS Lambda. Data sen
 Initialize a new project using Serverless Framework. Serverless Framework requires a template for creating a new project. While you can use one of the built in templates, we've provided our own for this workshop that will be helpful if you are new to Serverless Framework or CloudFormation.
 
 ```
-$ cd $WORKSPACE
+$ cd $WORKSHOP
 $ sls create -n wild-rydes-ryde-record -p wild-rydes-ride-record -u https://github.com/ServerlessOpsIO/wild-rydes-ride-record-template
 ```
 <details>
