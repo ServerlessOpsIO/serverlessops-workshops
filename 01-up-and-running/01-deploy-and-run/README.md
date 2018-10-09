@@ -342,7 +342,7 @@ functions:
 
 The function's name is under the _functions_ key and called _RequestRide_. We'll ignore _LoadTable_ and _StaticSiteConfig_ for now.
 
-Begin tailing the `RequestRide` logs. This will show the log output from usage of the application in the previous step. At a later point we can turn on debug logging to make these log messages more useful.
+Begin tailing the `RequestRide` logs. This will show the log output from usage of the application in the previous step. After you begin tailing the function's logs request a ride from the website and see the log lines appear in your console.
 
 ```
 $ sls logs -f RequestRide -t
