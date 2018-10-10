@@ -4,8 +4,8 @@ This workshop demonstrates a typical 3 tier serverless application. It also intr
 
 The modules in this workshop are:
 
-1) [Serverless Deploy And Run](./01-deploy-and-run/README.md)
-1) [Building A Serverless Service](./02-build-new-service/README.md)
+1) [Serverless Deploy And Run](./01-deploy-and-run/)
+1) [Building A Serverless Service](./02-build-new-service/)
 
 
 ## Tech Stack
