@@ -27,6 +27,8 @@ The Wild Rydes application has been broken down into two separate services. They
 
 Deploy the _wild-rydes-ride-fleet_ service. This service is a RESTful API that fetches available unicorns and returns their info to the requesting service. The service is composed of API Gateway, an AWS Lambda function, and a DynamoDB table.
 
+Clone the GitHub repository, change into the directory, use NodeJS's _npm_ to install Serverless Framework plugins and deploy.
+
 ```
 $ cd $WORKSHOP
 $ git clone https://github.com/ServerlessOpsIO/wild-rydes-ride-fleet.git
@@ -148,6 +150,9 @@ ServerlessDeploymentBucketName: wild-rydes-ride-fleet-de-serverlessdeploymentbuc
 ### 2. Deploy wild-rydes
 
 Deploy _wild-rydes_. This composed of a RESTful web API that fetches an available ride from the wild-rydes-ride-fleet and the website frontend used by users. The service is composed of API Gateway, an AWS Lambda function, static web content served from an S3 bucket, and a DNS record in Route53.
+
+Clone the GitHub repository, change into the directory, use NodeJS's _npm_ to install Serverless Framework plugins and deploy.
+
 ```
 $ cd $WORKSHOP
 $ git clone https://github.com/ServerlessOpsIO/wild-rydes.git
@@ -394,7 +399,19 @@ $ sls invoke -f RequestRide -p tests/events/request-ride-event.json
 
 ## Questions
 
-### 1. Service Discovery
+### 1. Serverless Framework
+
+Q. What do each of these subcommands of Serverless framework do?
+
+* deploy
+  * How does the `v` flag effect output?
+* info
+  * How does the `v` flag effect output?
+* log
+  * How does the `t` flag effect output?
+* invoke
+
+### 2. Service Discovery
 
 Q. How does _wild-rydes_ know the _wild-rydes-ride-fleet_ API endpoint?
 
@@ -467,10 +484,10 @@ The [AWS Systems Manager Parameter Store](https://docs.aws.amazon.com/systems-ma
 
 **Extra Credit:** Implement the solution to the previous question.
 
-### 2. Relationship between S3 bucket and Route53 record.
+### 3. Relationship between S3 bucket and Route53 record.
 
-Q. Explain the relationship between the S3 bucket and Route53 for DNS resolution. (Hint: Look at the bucket name and compare it with the Route53 record name.)
-<details>
+Q. Explain the relationship between the S3 bucket hosting the site and Route53 for DNS resolution. (Hint: Look at the bucket name and compare it with the Route53 DNS record name. use `sls info -v` for that information.)
+<details<details>
 <summary><strong>Hint</strong></summary>
 <p>
 
@@ -520,7 +537,7 @@ custom:
 </p>
 </details>
 
-### 3. Security
+### 4. Security
 
 Q. Why doesn't the frontend use HTTPS?
 <details>
