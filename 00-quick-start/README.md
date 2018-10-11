@@ -145,7 +145,7 @@ S3 Sync: Synced.
 
 Navigate to the newly deployed application. In the output of the previous step, look for the _StaticSiteS3BucketWebsiteURL_ in _Stack Outputs_. This is the URL of the newly deployed application.  Navigate to it in a web browser.
 
-![Wild Rydes Web Site](../../images/wild-rydes-site.png)
+![Wild Rydes Web Site](../images/wild-rydes-site.png)
 
 Use the application and request a ride.
 
