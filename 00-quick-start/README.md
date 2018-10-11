@@ -23,7 +23,7 @@ This is the wild Rydes tech stack we'll work with. It's a three tier architectur
 * API Gateway + Lambda backend
 * DynamoDB data layer
 
-![Wild Rydes Monolith](../../images/wild-rydes-monolith.png)
+![Wild Rydes Monolith](../images/wild-rydes-monolith.png)
 
 The frontend is static HTML, JavaScript, CSS, and images stored in an S3 bucket. S3 acts as a webserver serving up this content to a web client. When a ride request is made, the web client makes a request to an API Gateway endpoint. The request to that endpoint triggers the `RequestRide` Lambda function which requests a ride from DynamoDB and returns the information to the web client and that information is then rendered on the page.
 
