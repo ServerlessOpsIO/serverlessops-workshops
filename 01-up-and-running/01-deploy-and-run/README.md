@@ -483,6 +483,21 @@ The [AWS Systems Manager Parameter Store](https://docs.aws.amazon.com/systems-ma
 </details>
 
 **Extra Credit:** Implement the solution to the previous question.
+<details>
+<summary><strong>Answer</strong></summary>
+<p>
+
+Option 1: Obtain AWS SSM Param Store value at deploy time. See the _Outputs_ section in _serverless.yml_ to figure out how to get the API endpoint value.
+
+* [AWS::SSM::Parameter](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ssm-parameter.html)
+* [Serverless Framework Variables: Reference Variables using the SSM Parameter Store](https://serverless.com/framework/docs/providers/aws/guide/variables/#reference-variables-using-the-ssm-parameter-store)
+
+Option 2: Obtain AWS SSM Param store value at function runtime.
+
+* [ssm-cache-python](https://github.com/alexcasalboni/ssm-cache-python)
+
+</p>
+</details>
 
 ### 3. Relationship between S3 bucket and Route53 record.
 
