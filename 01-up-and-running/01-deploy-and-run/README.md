@@ -404,11 +404,11 @@ $ sls invoke -f RequestRide -p tests/events/request-ride-event.json
 Q. What do each of these subcommands of Serverless framework do?
 
 * deploy
-  * How does the `v` flag effect output?
+  * How does the `-v` flag effect output?
 * info
-  * How does the `v` flag effect output?
+  * How does the `-v` flag effect output?
 * log
-  * How does the `t` flag effect output?
+  * How does the `-t` flag effect output?
 * invoke
 
 ### 2. Service Discovery
