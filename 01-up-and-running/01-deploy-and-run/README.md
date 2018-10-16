@@ -411,6 +411,14 @@ Q. What do each of these subcommands of Serverless framework do?
   * How does the `-t` flag effect output?
 * invoke
 
+<details>
+<summary><strong>Hint</strong></summary>
+<p>
+
+* [Serverless Framework CLI Reference](https://serverless.com/framework/docs/providers/aws/cli-reference/)
+</p>
+</details>
+
 ### 2. Service Discovery
 
 Q. How does _wild-rydes_ know the _wild-rydes-ride-fleet_ API endpoint?
