@@ -64,6 +64,9 @@ $ npm run setup
 ```
 -->
 Now examine the newly created _serverless.yml_ file in your editor.
+```
+$ nano serverless.yml
+```
 <details>
 <summary><strong>serverless.yml file</strong></summary>
 <p>
