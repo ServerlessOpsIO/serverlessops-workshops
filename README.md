@@ -6,7 +6,7 @@ This repository contains the ServerlessOps training workshops. These workshops f
 
 The workshops in this repository are:
 
-1) [Serverless Up And Running](./01-up-and-running/README.md)
+1) [Serverless Up And Running](./01-up-and-running/)
 1) Serverless Reliability And Operations (coming)
 1) Serverless Security (coming)
 1) Serverless Testing And CI/CD (coming)
