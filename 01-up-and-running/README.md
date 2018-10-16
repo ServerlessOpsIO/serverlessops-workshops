@@ -1,4 +1,5 @@
 # Serverless Up And Running
+[![Join the chat at https://gitter.im/ServerlessOpsIO/serverlessops-workshops](https://badges.gitter.im/ServerlessOpsIO/serverlessops-workshops.svg)](https://gitter.im/ServerlessOpsIO/serverlessops-workshops?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 This workshop demonstrates a typical 3 tier serverless application. It also introduces participants to the basics of managing serverless applications with [Serverless Framework](https://www.serverless.com). The workshop walks the participant through the first steps of creating and managing serverless applications. After the workshop the participant should feel confident and be capable of creating their own serverless application.
 
