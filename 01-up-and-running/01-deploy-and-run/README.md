@@ -423,7 +423,7 @@ Q. What do each of these subcommands of Serverless framework do?
 
 Q. How does _wild-rydes_ know the _wild-rydes-ride-fleet_ API endpoint?
 
-Where is the HTTP endpoint specified in _wild-rydes_ for the e _wild-rydes-ride-fleet_ API endpoint and how does _RequestRide_ know to use it?
+Where is the HTTP endpoint specified in _wild-rydes_ for the _wild-rydes-ride-fleet_ API endpoint and how does _RequestRide_ know to use it?
 
 <details>
 <summary><strong>Hint</strong></summary>
