@@ -10,18 +10,23 @@ In this module we'll add a new feature to Wild Rydes. However, this new feature 
 **Goals:**
 * Evaluate a new application and fix the cloud infrastructure security issues with it.
 
-## Access Controls
+## Infrastructure Security
+### Access Controls / AWS IAM
 
 This lab will primarily deal with AWS access controls. In particular, we will make use of [AWS IAM](https://aws.amazon.com/iam/) to properly secure our application infrastructure. Incorrect or far too broad IAM policies lead to many of the security issues that organizations see. This module will illustrate common mistakes people make and demonstrate best practices.
 
 Terminology:
 
-* _IAM Policy:_ A collection of IAM permission statements. These are tyipically attached to an IAM Role, Group, or User. (Best practice is to not attach policies to users.)
+* _IAM Policy:_ A collection of IAM permission statements. These are typically attached to an IAM Role, Group, or User. (Best practice is to not attach policies to users.)
 * _IAM Role:_ A collection of IAM policies. We attach IAM Roles to Lambda functions to give them permission to access other AWS resources.
 
 IAM Permissions Reference:
 
 * https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_actions-resources-contextkeys.html
+
+### Infrastructure Monitoring / AWS Config
+
+Once infrastructure security issues have been detected and remediated there should be a process put in place to prevent the issue from happening again. We'll use [AWS Config](https://aws.amazon.com/config/) to monitor for and alert on issues.
 
 ## Instructions
 
@@ -107,6 +112,10 @@ Navigate to the site in your browser and go to the ride request map. In the uppe
 Finally, you should see your message in the Gitter chatroom associated with this workshop. Click on the badge to join the room. Be sure to look for your message. [![Join the chat at https://gitter.im/ServerlessOpsIO/serverlessops-workshops](https://badges.gitter.im/ServerlessOpsIO/serverlessops-workshops-testing.svg)](https://gitter.im/ServerlessOpsIO/serverlessops-workshops-testing?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 
+### 5. Write an AWS Config Rule to alert on open buckets.
+
+Create an [AWS Config](https://aws.amazon.com/config/) rule that will monitor and alert on the presence of open S3 buckets.
+
 ## Q&A
 
 ### S3 Bucket Access
@@ -126,3 +135,7 @@ Where possible, attempt to use the first option.
 </details>
 
 ### IAM Roles
+
+
+### AWS Config
+
