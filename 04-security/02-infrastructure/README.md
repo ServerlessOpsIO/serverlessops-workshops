@@ -1,3 +1,7 @@
+<!--
+Good ideas: https://www.puresec.io/blog/aws-security-best-practices-config-rules-lambda-security
+-->
+
 # Serverless Infrastructure Security
 
 In this module we'll add a new feature to Wild Rydes. However, this new feature has a variety of cloud infrastructure security issues that require fixing. We'll find and fix these issues typically by fixing AWS IAM issues.
