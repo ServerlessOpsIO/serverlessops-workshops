@@ -28,6 +28,52 @@ The new service will be a RESTful API using API Gateway and AWS Lambda. Data sen
 }
 ```
 
+## Serverless Framework Configuration.
+
+Serverless Framework projects are controlled by the _serverless.yml_ file. In this workshop you will be editing this file. Below is a sample skeleton file with descriptions of the different sections of note. You'll initialize your new service off a template similar to this one but with even more configuration already handled.
+
+```yaml
+
+# This is the name of service we'll be deploying. You'll see it in the AWS
+# Cloudfromation stack name.
+service: <NAME>
+
+# Additional functionality and enhancements to Serverless Framework.
+plugins:
+
+# Reuasable values and or plugin configuration.
+custom:
+
+
+# Serverless platform configuration.
+#
+# This service will be deployed to AWS and use the python 3.6 runtime.
+provider:
+  name: aws
+  runtime: python3.6
+  stage: "${opt:stage, env:SLS_STAGE, 'dev'}"
+  region: "${opt:region, 'us-east-2'}"
+  cfnRole: "arn:aws:iam::${env:AWS_ACCOUNT}:role/CloudFormationDeployRole"
+  profile: "${opt:aws-profile, env:AWS_PROFILE, env:AWS_DEFAULT_PROFILE, 'default'}"
+
+
+# Lambda functions are configured here.
+functions:
+
+
+# Addtional service resources and configuration.
+resources:
+  # Additional AWS resources , e.g. DynamoDB tables, S3 Buckets, etc, are
+  # configured here. For AWS, this is just CloudFormation configuration.
+  Resources:
+
+
+  # Configures CloudFormation stack outputs. These are often useful for
+  # reference by other stacks.
+  Outputs:
+
+```
+
 ## Instructions
 
 ### 1. Create new project
@@ -77,7 +123,7 @@ $ nano serverless.yml
 # Cloudfromation stack name.
 service: wild-rydes-ride-record
 
-#
+# Additional functionality and enhancements to Serverless Framework.
 plugins:
   - serverless-python-requirements
 
@@ -93,6 +139,8 @@ provider:
   runtime: python3.6
   stage: "${opt:stage, env:SLS_STAGE, 'dev'}"
   profile: "${opt:aws-profile, env:AWS_PROFILE, env:AWS_DEFAULT_PROFILE, 'default'}"
+  region: "${opt:region, 'us-east-2'}"
+  cfnRole: "arn:aws:iam::${env:AWS_ACCOUNT}:role/CloudFormationDeployRole"
   environment:
     LOG_LEVEL: "${env:LOG_LEVEL, 'INFO'}"
 
@@ -127,13 +175,26 @@ resources:
 Add a DynamoDB table to the project's _serverless.yml_ file. Your table should use the `RideId` of the JSON document accepted by the API endpoint as a unique hash key. Add the table in the section of the _serverless.yml_ where additional AWS resources go.
 
 <details>
-<summary><strong>Hint</strong></summary>
+<summary><strong>Hint 1</strong></summary>
 <p>
 If you're familiar with CloudFormation, you can reference the documentation here:
 
 * [CloudFormation AWS::DynamoDB::Table](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html)
 </p>
 </details>
+Your table will need the following properties. These are the minimum properties necessary to create a DynamoDB table:
+
+* [KeySchema](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html#cfn-dynamodb-table-keyschema): Every table needs a hash key to keep records unique. You can add a range key if desired but it's not necessary.
+* [AttributeDefinitions](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html#cfn-dynamodb-table-attributedef): Each key defined in the schema needs to be defined as an attribute.
+* [ProvisionedThroughput](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html#cfn-dynamodb-table-provisionedthroughput) The _ReadCapacityUnits_ and _WriteCapacityUnits_ keys determine how much read and write load a table can handle. Keep the capacity low for this workshop. Use a value of _1_ for reach. [To learn more about table capacity and throughput click here.](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/HowItWorks.ProvisionedThroughput.html)
+
+Notice you do not need a _TableName_ attribute. CloudFormation will generate one for you when you deploy. Later on we'll need the table's name. We will use a CloudFormation function to get it.
+<details>
+<summary><strong>Hint w</strong></summary>
+<p>
+</p>
+</details>
+
 
 <details>
 <summary><strong>Answer</strong></summary>
@@ -159,8 +220,8 @@ resources:
           - AttributeName: ${self:custom.ddb_table_hash_key}
             KeyType: HASH
         ProvisionedThroughput:
-          ReadCapacityUnits: 5
-          WriteCapacityUnits: 5
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
 ```
 </p>
 </details>
@@ -170,7 +231,7 @@ resources:
 Add the configuration for the Lambda function. The function is triggered by an HTTP POST request to the `/record` endpoint. The function will need permission to write to the DynamoDB table and the function will need to know the name of the DynamoDB table. _(You can pass the DynanmoDB table name to the Lambda function as an environmental variable.)_
 
 <details>
-<summary><strong>Hint</strong></summary>
+<summary><strong>Hint 1</strong></summary>
 <p>
 
 The following Serverless Framework docs will help:
@@ -183,6 +244,13 @@ The following Serverless Framework docs will help:
 </p>
 </details>
 
+<summary><strong>Hint 2</strong></summary>
+<p>
+
+* __IAM role:__ Your role will need to frant the _dynamodb:PutItem_ permission to the _RideRecordTable_ DynamoDB table. You can use the [Fn::GetAtt function](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html#w2ab1c21c10d413c15) to obtain the table's _Arn_ value.
+* __Function environmental variables:__ Use the [Ref function](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html#w2ab1c21c10d413c15) to obtain the DynamoDB table's name.
+</p>
+</details>
 
 
 <details>
@@ -284,6 +352,70 @@ This is the Python Boto3 dcumentation for working with a DynamoDB table.
 <details>
 <summary><strong>Answer</strong></summary>
 <p>
+
+<details>
+<summary><strong>Hint 3</strong></summary>
+<p>
+
+See the `FIXME` notes in the code below. These are the areas for you to concentrate on.
+Pseudo-code:
+
+```python
+'''Put ride record'''
+
+import json
+import logging
+import os
+
+import boto3
+
+log_level = os.environ.get('LOG_LEVEL', 'INFO')
+logging.root.setLevel(logging.getLevelName(log_level))  # type: ignore
+_logger = logging.getLogger(__name__)
+
+# FIXME: DynamoDB
+# - Get table name from environment
+# - Create DynamoDB resource object
+# - Create DynamoDB Table object
+
+def _get_body_from_event(event):
+    '''Get data from event body'''
+    # FIXME: Return the body of the API Gateway request contained in the
+    # trigger event.
+    #
+    # HINT: see tests/events/put_ride_record.json
+    pass
+
+
+def _put_ride_record(ride_record):
+    '''Put record item into DynamoDB table.'''
+    # FIXME: Take the ride_record and insert it into DynamoDB
+    pass
+
+
+def handler(event, context):
+    '''Function entry'''
+    _logger.debug('Event received: {}'.format(json.dumps(event)))
+
+    ride_record = _get_body_from_event(event)
+    _put_ride_record(ride_record)
+
+    resp = {
+        'statusCode': 201,
+        'body': json.dumps({'success': True})
+    }
+    _logger.debug('Response: {}'.format(json.dumps(resp)))
+    return resp
+
+```
+
+</p>
+</details>
+
+<details>
+<summary><strong>Answer</strong></summary>
+<p>
+
 
 ```python
 '''Put ride record'''
