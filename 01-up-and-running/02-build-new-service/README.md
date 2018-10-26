@@ -182,6 +182,10 @@ If you're familiar with CloudFormation, you can reference the documentation here
 * [CloudFormation AWS::DynamoDB::Table](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html)
 </p>
 </details>
+
+<details>
+<summary><strong>Hint 2</strong></summary>
+<p>
 Your table will need the following properties. These are the minimum properties necessary to create a DynamoDB table:
 
 * [KeySchema](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html#cfn-dynamodb-table-keyschema): Every table needs a hash key to keep records unique. You can add a range key if desired but it's not necessary.
@@ -189,9 +193,6 @@ Your table will need the following properties. These are the minimum properties 
 * [ProvisionedThroughput](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html#cfn-dynamodb-table-provisionedthroughput) The _ReadCapacityUnits_ and _WriteCapacityUnits_ keys determine how much read and write load a table can handle. Keep the capacity low for this workshop. Use a value of _1_ for reach. [To learn more about table capacity and throughput click here.](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/HowItWorks.ProvisionedThroughput.html)
 
 Notice you do not need a _TableName_ attribute. CloudFormation will generate one for you when you deploy. Later on we'll need the table's name. We will use a CloudFormation function to get it.
-<details>
-<summary><strong>Hint w</strong></summary>
-<p>
 </p>
 </details>
 
@@ -244,6 +245,7 @@ The following Serverless Framework docs will help:
 </p>
 </details>
 
+<details>
 <summary><strong>Hint 2</strong></summary>
 <p>
 
@@ -350,10 +352,6 @@ This is the Python Boto3 dcumentation for working with a DynamoDB table.
 </details>
 
 <details>
-<summary><strong>Answer</strong></summary>
-<p>
-
-<details>
 <summary><strong>Hint 3</strong></summary>
 <p>
 
@@ -415,7 +413,6 @@ def handler(event, context):
 <details>
 <summary><strong>Answer</strong></summary>
 <p>
-
 
 ```python
 '''Put ride record'''
