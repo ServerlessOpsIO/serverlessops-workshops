@@ -347,10 +347,10 @@ functions:
 
 The function's name is under the _functions_ key and called _RequestRide_. We'll ignore _LoadTable_ and _StaticSiteConfig_ for now.
 
-Begin tailing the `RequestRide` logs. This will show the log output from usage of the application in the previous step. After you begin tailing the function's logs request a ride from the website and see the log lines appear in your console.
+Dump the `RequestRide` logs. This will show the log output from usage of the application in the previous step. After you begin tailing the function's logs request a ride from the website and see the log lines appear in your console.
 
 ```
-$ sls logs -f RequestRide -t
+$ sls logs -f RequestRide
 ```
 
 <details>
@@ -371,7 +371,13 @@ REPORT RequestId: de28da92-b0a2-11e8-8b20-e97d4c435322  Duration: 381.62 ms     
 </p>
 </details>
 
-If you received the error `No existing streams for the function` then either you did not request a ride in the previous step or logs have been delayed in reaching CloudWatch.
+If you received the error `No existing streams for the function` then either you did not request a ride in the previous step or logs have been delayed in reaching CloudWatch. Go back to Step 3 and request a ride.
+
+If you'd like to tail logs in realtime then use the `-t` flag to tail the log stream. Run the command below and then request a ride from the site. You will see you ride request show up.
+
+```
+$ sls logs -f RequestRide -t
+```
 
 ### 5. Invoke function
 
