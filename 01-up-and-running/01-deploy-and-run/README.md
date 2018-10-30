@@ -413,7 +413,7 @@ Q. What do each of these subcommands of Serverless framework do?
   * How does the `-v` flag effect output?
 * info
   * How does the `-v` flag effect output?
-* log
+* logs
   * How does the `-t` flag effect output?
 * invoke
 
