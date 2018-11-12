@@ -10,7 +10,7 @@ The workshops in this repository are:
 1) [Serverless Architecture](./02-architecture)
 1) [Serverless Reliability And Operations](./03-operations)
 1) [Serverless Security](./04-security)
-1) Serverless Testing And CI/CD (coming)
+1) [Serverless Testing And CI/CD](./05-testing-and-cicd)
 
 
 ## Requirements
