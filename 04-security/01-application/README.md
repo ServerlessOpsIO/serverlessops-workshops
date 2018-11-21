@@ -1,8 +1,8 @@
 # Serverless Application Security
 
-In this workshop we plan to add a new feature to Wild Rydes. To do so, we've created a new service called _wild-rydes-feedback_. However, this new service has a variety of application security issues that require fixing.
+In this module we plan to add a new feature to Wild Rydes. To do so, we've created a new service called _wild-rydes-feedback_. However, this new service has a variety of application security issues that require fixing.
 
-In this module we'll find and fix these issues.
+We'll work to find and fix these issues.
 
 ## Goals and Objectives:
 
