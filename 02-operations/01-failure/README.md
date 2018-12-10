@@ -17,8 +17,8 @@ In this module we’ll increase load on the application to trigger a failure som
 
 __Objectives:__
 
-* Understand how to find failures in our application.
-* Understand how to instrument a function to obtain metrics, logging, and trace data.
+* Understand how to find failures and performance issues in our application.
+* Understand how to instrument a function to obtain metrics, logs, and trace data.
 
 Goals:
 
@@ -30,10 +30,10 @@ Goals:
 ### Wild Rydes
 
 This workshop module will involve the following Wild Rydes services.
-
- * [wild-rydes-ride-record](https://github.com/ServerlessOpsIO/wild-rydes-ride-record): Service for recording rides requested. *Note: if you've done the [Serverless Up and Running workshop](../../01-up-and-running/02-build-new-service) we'll be replacing what you've deployed with a version meant for this workshop. Without replacing your version with the version for this workshop certain steps may not succeed.*
-
+ * [wild-rydes-ride-record](https://github.com/ServerlessOpsIO/wild-rydes-ride-record): Service for recording rides requested.
  * [wild-rydes](https://github.com/ServerlessOpsIO/wild-rydes): Frontend website and ride request service.
+
+*Note: if you've done the [Serverless Up and Running workshop](../../01-up-and-running/02-build-new-service) we'll be replacing what you've deployed with versions meant for this workshop. Without replacing your version with the version for this workshop certain steps may not succeed.*
 
 ### Tools
 
@@ -52,12 +52,10 @@ This workshop module will involve the following Wild Rydes services.
 ## Instructions
 
 ### 1. Deploy new services / update existing
-Deploy updates to wild-rydes services. These updates have changes specidically targeted for the completion of this workshop.
+Deploy updates to wild-rydes services. These updates have changes specifically targeted for the completion of this workshop.
 
 #### wild-rydes-ride-record
 Deploy the *wild-rydes-ride-record* service. We'll be working on issues stemming from this service.
-
-*Note: If you've done the [Serverless Up and Running workshop](../../01-up-and-running/02-build-new-service) we'll be replacing what you've deployed with a version meant for this workshop. Without replacing your version with the version for this workshop certain steps may not succeed.*
 
 Start by cloning the repository from GitHub, then check out the *workshop-operations-01* branch for this workshop module, and finally deploy the application.
 
@@ -79,8 +77,6 @@ $ sls deploy -v
 
 #### wild-rydes
 Deploy the *wild-rydes* service. It has updates to work with the *wild-rydes-ride-record* service. In later steps you'll be instrumenting this function to collect runtime and log data from invocations to the Thundra platform.
-
-*Note: If you've done the [Serverless Up and Running workshop](../../01-up-and-running/02-build-new-service) we'll be replacing what you've deployed with a version meant for this workshop. Without replacing your version with the version for this workshop certain steps may not succeed.*
 
 Start by cloning the repository from GitHub, then check out the *workshop-operations-01* branch for this workshop module, and finally deploy the application.
 ```
@@ -241,9 +237,9 @@ Import the *thundra* Python module in handlers/request_ride.py. Then, initialize
 --- a/handlers/request_ride.py
 +++ b/handlers/request_ride.py
 @@ -8,6 +8,11 @@
- 
+
  from botocore.vendored import requests
- 
+
 +from thundra.thundra_agent import Thundra
 +THUNDRA_API_KEY = os.environ.get('THUNDRA_API_KEY', '')
 +thundra = Thundra(api_key=THUNDRA_API_KEY)
@@ -254,8 +250,8 @@ Import the *thundra* Python module in handlers/request_ride.py. Then, initialize
  _logger = logging.getLogger(__name__)
 @@ -61,6 +66,7 @@ def _post_ride_record(ride, url=RIDE_RECORD_URL):
      return resp
- 
- 
+
+
 +@thundra
  def handler(event, context):
      '''Function entry'''
@@ -273,14 +269,14 @@ Add the Thundra logging handler. Anytime we use Python's logging facility those 
 +++ b/handlers/request_ride.py
 @@ -13,9 +13,11 @@
  thundra = Thundra(api_key=THUNDRA_API_KEY)
- 
- 
+
+
 +from thundra.plugins.log.thundra_log_handler import ThundraLogHandler
  log_level = os.environ.get('LOG_LEVEL', 'INFO')
  logging.root.setLevel(logging.getLevelName(log_level))  # type:ignore
  _logger = logging.getLogger(__name__)
 +_logger.addHandler(ThundraLogHandler())
- 
+
  REQUEST_UNICORN_URL = os.environ.get('REQUEST_UNICORN_URL')
  RIDE_RECORD_URL = os.environ.get('RIDE_RECORD_URL')
  ```
@@ -296,50 +292,50 @@ Add tracing to the Lambda function. Thundra will record the time spend in each f
 +++ b/handlers/request_ride.py
 @@ -9,6 +9,8 @@
  from botocore.vendored import requests
- 
+
  from thundra.thundra_agent import Thundra
 +from thundra.plugins.trace.traceable import Traceable
 +
  THUNDRA_API_KEY = os.environ.get('THUNDRA_API_KEY', '')
  thundra = Thundra(api_key=THUNDRA_API_KEY)
- 
+
 @@ -23,11 +25,13 @@
  RIDE_RECORD_URL = os.environ.get('RIDE_RECORD_URL')
- 
- 
+
+
 +@Traceable(trace_args=True, trace_return_value=True)
  def _generate_ride_id():
      '''Generate a ride ID.'''
      return uuid.uuid1()
- 
- 
+
+
 +@Traceable(trace_args=True, trace_return_value=True)
  def _get_ride(pickup_location):
      '''Get a ride.'''
      ride_id = _generate_ride_id()
 @@ -42,22 +46,26 @@ def _get_ride(pickup_location):
      return resp
- 
- 
+
+
 +@Traceable(trace_args=True, trace_return_value=True)
  def _get_timestamp_from_uuid(u):
      '''Return a timestamp from the given UUID'''
      return datetime.fromtimestamp((u.time - 0x01b21dd213814000) * 100 / 1e9)
- 
- 
+
+
 +@Traceable(trace_args=True, trace_return_value=True)
  def _get_unicorn(url=REQUEST_UNICORN_URL):
      '''Return a unicorn from the fleet'''
      unicorn = requests.get(REQUEST_UNICORN_URL)
      return unicorn.json()
- 
- 
+
+
 +@Traceable(trace_args=True, trace_return_value=True)
  def _get_pickup_location(body):
      '''Return pickup location from event'''
      return body.get('PickupLocation')
- 
- 
+
+
 +@Traceable(trace_args=True, trace_return_value=True)
  def _post_ride_record(ride, url=RIDE_RECORD_URL):
      '''Record ride info'''
@@ -372,18 +368,21 @@ $ artillery run -t <ServiceEndpoint> -c tests/artillery-high-load-config.yml tes
 ### 7. Look at failed invocations in Thundra
 <!-- we have two issues: 1) bad response from wild-rydes-ride-record, 2) retries to wild-rydes-ride-record cause RequestRide to timeout -->
 
-
+<!-- login -->
 Login to Thundra
-
 * https://console.thundra.io/landing
 
-#### Check nvocations with errors
+<!-- Navigate to functions -->
 
 
-### 8. Determine cause of the errors you unovered.
-Investigate the cause(s) of the errors you've found
-<!-- Be able to explain both of them -->
+<!-- Select RequestRide; filter for errors; investigate one of them -->
 
+
+<!-- see timeout -->
+<!-- function marked with X -->
+
+<!-- Select PutRideRecord; filter for errors; investigate one of them -->
+<!-- see error -->
 
 
 
