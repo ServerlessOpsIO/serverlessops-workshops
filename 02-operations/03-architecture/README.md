@@ -29,6 +29,10 @@ Goals:
 <!-- FIXME: Add diagram of current arch and future arch -->
 
 ...API web service versus SNS event driven...
+<!--
+* price comparison
+* performance comparison
+-->
 
 ... DDB auto-scaling v. on-demand
 <!--
@@ -37,8 +41,6 @@ We should cover the questions about this in the intro
 * sns -> Lambda -> DDB (on-demand)
 * sns -> SQS - > Lambda -> DDB (ASG)
 -->
-
-...API Gateway Cost...
 
 ...dead letter queues, invocation retries...
 
@@ -52,25 +54,22 @@ Create an SNS topic which *RequestRide* will publish ride information too. Inste
 
 This change will:
 * Decrease the average duration of the *RequestRide* function.
-* Reduce the need for error handling in *RequestRide* or liklihood of downstream services inducing failure.
-* Allow for adding more downstream services without altering *RequestRide**RequestRide*
+* Reduce the liklihood of downstream services inducing failure.
+* Allow for adding more downstream services without altering *RequestRide*
 
 
 #### Add SNS topic to *serverless.yml*
-Create an SNS topic in the `Resources` section of *serverless.yml*. This SNS topic is where *RequestRide* will publish messages to for containing information about the rides it has dispatched. These messages are intended to be processed by downstream services that do not need to run before the Wild Rydes user has been notified of their impending ride.
+Create an SNS topic in the `Resources` section of *serverless.yml*. This SNS topic is where *RequestRide* will publish messages to for containing information about the rides it has dispatched. These messages are intended to be processed by downstream services that do not need to run before the Wild Rydes user has been notified of their impending ride. This change increases the responsiveness of the application to the end user.
 
-The CloudFormation resource name (not the SNS Topic name) should be _RidesSnsTopic_.
+The CloudFormation resource name (not the SNS Topic name) should be _RidesSnsTopic_. None of the CloudFormation resource's properties are required, including topic name.
 
-<details>
-<summary><strong>Hint 1</strong></summary>
-<p>
+_NOTE: If you decided to set the *TopicName* property then you would have to ensure the SNS topic's name did not conflict with other parallel deployments of *wild-rydes*. We don't manually set the topic name._
+
+
 Reference the CloudFormation documentation here:
 
 * [CloudFormation AWS::SNS::Topic](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-sns-topic.html)
 
-None of the resource properties are required, including topic name. If you decided to set the *TopicName* property then you would have to ensure the SNS topic's name did not conflict with other parallel deployments of *wild-rydes*. You're probably best off letting CloudFormation do the work of configuring the SNS topic's name.
-</p>
-</details>
 
 <details>
 <summary><strong>Answer</strong></summary>
@@ -94,19 +93,47 @@ None of the resource properties are required, including topic name. If you decid
 </p>
 </details>
 
-#### Publish SNS topic ARN
-So that other services can subscribe to the SNS topic, export the topic ARN to AWS SSM Parameter Store. Create an SSM Param Store parameter named `/wild-rydes/STAGE/SnsTopicArn`. (Where STAGE is replaced by the value of *${self:provider.stage}* from Serverless Framework.) The value of the parameter can be obtained by using the Cloudfromation *Ref* function on the *RidesSnsTopic* CloudFormation resource. The *Ref* function applied to a *AWS::SNS::Topic* Cloudformation resource yields the ARN of the resource.
+#### Update *RequestRide* IAM permissions
+Next, give the *RequestRide* Lambda function the ability to send messages to the SNS topic.  Do this by adding an additional IAM policy statement under the `provider.iamRoleStatements` key that allows the *sns:Publish* action on the SNS topic. To obtain the SNS topic's ARN, use the CloudFormation *Ref* function.
+
+Reference the Serverless Framework and CloudFormation documentation here:
+
+* [Serverless Framework IAM Role Statements](https://serverless.com/framework/docs/providers/aws/guide/iam/)
+* [SNS IAM Permissions](https://docs.aws.amazon.com/sns/latest/dg/AccessPolicyLanguage_SpecialInfo.html)
+* [CloudFormation AWS::SNS::Topic - Return Values](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-sns-topic.html#w2ab1c21c10d198c17b9)
+
 
 <details>
-<summary><strong>Hint 1</strong></summary>
+<summary><strong>Answer</strong></summary>
 <p>
+
+```diff
+--- a/serverless.yml
++++ b/serverless.yml
+@@ -56,6 +56,11 @@ provider:
+               - StaticSite
+               - Arn
+             - '*'
++    - Effect: "Allow"
++      Action:
++        - "sns:Publish"
++      Resource:
++        - Ref: RidesSnsTopic
+
+
+ functions:
+```
+</p>
+</details>
+
+
+#### Publish SNS topic ARN
+So that other services can subscribe to the SNS topic, export the topic ARN to AWS SSM Parameter Store. Create an SSM Param Store parameter named `/wild-rydes/STAGE/SnsTopicArn`. _(Where STAGE is replaced by the value of *${self:provider.stage}* from Serverless Framework.)_ To obtain the SNS topic's ARN, use the CloudFormation *Ref* function.
+
 Reference the CloudFormation documentation here:
 
 * [CloudFormation AWS::SSM::Parameter](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ssm-parameter.html)
-* [CloudFormation Ref function](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/intrinsic-function-reference-ref.html)
-
-</p>
-</details>
+* [CloudFormation AWS::SNS::Topic - Return Values](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-sns-topic.html#w2ab1c21c10d198c17b9)
 
 <details>
 <summary><strong>Answer</strong></summary>
@@ -134,19 +161,13 @@ Reference the CloudFormation documentation here:
 </p>
 </details>
 
-#### Refactor *RequestRide* to publish to new SNS topic
-The *RequestRide* function now needs to publish to the SNS topic.
+#### Pass SNS topic ARN to *RequestRide* Lamda function
+The *RequestRide* function now needs to publish to the SNS topic. Edit _serverless.yml_ to pass the SNS topic's ARN to the *RequestRide* function as an environmental variable named *RIDES_SNS_TOPIC_ARN*. Use the CloudFormation *Ref* function again to get the ARN of the SNS topic you  created in previous steps. While you're here, remove the *RIDE_RECORD_URL* environmental variable as it will no longer be necessary.
 
-Edit _serverless.yml_ to pass the SNS topic's ARN to the *RequestRide* function as an environmental variable named *RIDES_SNS_TOPIC_ARN*. Use the CloudFormation *Ref* function again to get the ARN of the SNS topic you  created in previous steps. While you're here, remove the *RIDE_RECORD_URL* environmental variable as it will no longer be necessary.
-
-<details>
-<summary><strong>Hint 1</strong></summary>
-<p>
-Serverless Framework Documentation:
+Reference the Serverless Framework and CloudFormation documentation here:
 
 * [AWS Lambda Environmental Variables](https://serverless.com/framework/docs/providers/aws/guide/functions#environment-variables)
-</p>
-</details>
+* [CloudFormation AWS::SNS::Topic - Return Values](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-sns-topic.html#w2ab1c21c10d198c17b9)
 
 <details>
 <summary><strong>Answer</strong></summary>
@@ -169,30 +190,11 @@ Serverless Framework Documentation:
 </p>
 </details>
 
+#### Refactor *RequestRide* to publish to new SNS topic
 
-Refactor *handlers/request_ride.py* to publish ride information to the new SNS topic instead of the *wild-rydes-ride-record* via HTTP. In a later step we'll have a Lambda function from the *wild-rydes-ride-record* service subscribe to the topic.
+Refactor *handlers/request_ride.py* to publish ride information to the new SNS topic instead of the *wild-rydes-ride-record* via HTTP. _NOTE: In a later step we'll have a Lambda function from the *wild-rydes-ride-record* service subscribe to the topic._
 
-Start by importing the Python AWS SDK boto3 module. Then get the value of *RIDES_SNS_TOPIC_ARN* from the runtime environment. Next create a Boto3 *SNS.Client* object. Do these steps at the top of the file just before Python functions start being defined. (This is so the SNS client object persists across multiple Lambda function invocations.)
-
-Furthger down in the code, you can replace the *_post_ride_record()* Python function with one called *_publish_ride_record()*. The *_publish_ride_record()* function will take two arguments, one containing ride information and a second containing the SNS topic ARN to publish to.. The ride argument is no different than the ride argument that was passed to *_post_ride_record()*. The function will call the SNS.Client.publish() function to publish the ride message as the message body and the function does not return a value. Remember to convert the ride information to a JSON string using by calling the *json.dumps()* Python function.
-
-Finally, remember to add the Thundra *Traceable* decorator to the *_publish_ride_record()* function.
-
-
-<details>
-<summary><strong>Hint 1</strong></summary>
-<p>
-
-Python Documentation:
-
-* [Boto3 SNS.Client](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sns.html#client)
-
-</p>
-</details>
-
-<details>
-<summary><strong>Hint 2</strong></summary>
-<p>
+Start by importing the Python AWS SDK *boto3* module.
 
 ```diff
 --- a/handlers/request_ride.py
@@ -205,6 +207,29 @@ Python Documentation:
  from botocore.vendored import requests
 
  from thundra.thundra_agent import Thundra
+```
+
+Next get the value of *RIDES_SNS_TOPIC_ARN* from the runtime environment and then create a Boto3 *SNS.Client* object named *SNS_CLIENT*. Do these steps at the top of the file just before Python functions start being defined. (This is so the SNS client object persists across multiple Lambda function invocations.)
+
+<details>
+<summary><strong>Hint 1</strong></summary>
+<p>
+
+Python Documentation:
+
+* [Python os.environ()](https://docs.python.org/3/library/os.html#os.environ)
+* [Boto3 SNS.Client](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sns.html#client)
+
+</p>
+</details>
+
+<details>
+<summary><strong>Hint 2</strong></summary>
+<p>
+
+```diff
+--- a/handlers/request_ride.py
++++ b/handlers/request_ride.py
 @@ -22,8 +22,14 @@ _logger = logging.getLogger(__name__)
  _logger.addHandler(ThundraLogHandler())
 
@@ -220,6 +245,52 @@ Python Documentation:
 
  @Traceable(trace_args=True, trace_return_value=True)
  def _generate_ride_id():
+```
+</p>
+</details>
+
+<details>
+<summary><strong>Answer</strong></summary>
+<p>
+
+```diff
+--- a/handlers/request_ride.py
++++ b/handlers/request_ride.py
+@@ -22,7 +23,9 @@ _logger = logging.getLogger(__name__)
+ _logger.addHandler(ThundraLogHandler())
+
+ REQUEST_UNICORN_URL = os.environ.get('REQUEST_UNICORN_URL')
+-RIDE_RECORD_URL = os.environ.get('RIDE_RECORD_URL')
++
++RIDES_SNS_TOPIC_ARN = os.environ.get('RIDES_SNS_TOPIC_ARN')
++SNS_CLIENT = boto3.client('sns')
+
+
+ @Traceable(trace_args=True, trace_return_value=True)
+```
+</p>
+</details>
+
+
+Further down in the code, replace the *_post_ride_record()* Python function with one called *_publish_ride_record()*. The *_publish_ride_record()* function will take two arguments, one containing ride information and a second containing the SNS topic ARN to publish to. The ride argument is no different than the ride argument that was passed to *_post_ride_record()*. The *_publish_ride_record()* function will call the *SNS_CLIENT.publish()* function to publish the ride message as the message body. The *_publish_ride_record()* function does not return a value. Remember to convert the ride information to a JSON string using by calling the *json.dumps()* Python function. Also, remember to add the Thundra *Traceable* decorator to the *_publish_ride_record()* function.
+
+
+<details>
+<summary><strong>Hint 1</strong></summary>
+<p>
+
+Python Documentation:
+
+* [Boto3 SNS.Client.publish()](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sns.html#SNS.Client.publish)
+
+</p>
+</details>
+
+<details>
+<summary><strong>Hint 2</strong></summary>
+<p>
+
+```diff
 @@ -65,6 +71,7 @@ def _get_pickup_location(body):
      return body.get('PickupLocation')
 
@@ -266,25 +337,6 @@ Python Documentation:
 ```diff
 --- a/handlers/request_ride.py
 +++ b/handlers/request_ride.py
-@@ -6,6 +6,7 @@ import json
- import os
- import uuid
-
-+import boto3
- from botocore.vendored import requests
-
- from thundra.thundra_agent import Thundra
-@@ -22,7 +23,9 @@ _logger = logging.getLogger(__name__)
- _logger.addHandler(ThundraLogHandler())
-
- REQUEST_UNICORN_URL = os.environ.get('REQUEST_UNICORN_URL')
--RIDE_RECORD_URL = os.environ.get('RIDE_RECORD_URL')
-+
-+RIDES_SNS_TOPIC_ARN = os.environ.get('RIDES_SNS_TOPIC_ARN')
-+SNS_CLIENT = boto3.client('sns')
-
-
- @Traceable(trace_args=True, trace_return_value=True)
 @@ -66,15 +69,13 @@ def _get_pickup_location(body):
 
 
@@ -319,10 +371,10 @@ Python Documentation:
 </p>
 </details>
 
-#### Deploy the updated *wild-rydes* service
+#### Deploy updated *wild-rydes* service
 Deploy the newly updated *wild-rydes*.
 
-*NOTE: This will create a minor service disruption as ride records will not be sent to wild-rydes-ride-record until that service is updated in the following steps. We are proceeding this way for clarity in this workshop.*
+*NOTE: This will create a minor service disruption as ride records will not be sent to wild-rydes-ride-record until that service is updated in the following steps. We are proceeding this way for clarity in this workshop. You would do more iterative changes and deploys if this were a production system.*
 
 ```
 $ cd $WORKSHOP/wild-rydes
@@ -330,21 +382,13 @@ $ sls deploy -v
 ```
 
 ### 2. Add DynamoDB scaling in *wild-rydes-ride-record*
-Add the ability to scale to your DynamoDB table by enabling on-demand pricing. There isn't enough data to properly size the read and write capacity on the table so this is the best choice for scaling our table.
+Add the ability to scale to your DynamoDB table by enabling on-demand pricing. There isn't enough data to properly size the read and write capacity on the table so this is the best choice for scaling the table. If we could predict load, then we would have chosen to implement DynamoDB auti-scaling.
 
-To do this, remove the *ProvisionedThroughput* configuration on the *RideRecordTable* Cloudfromation resource and add the *BillingMode* key with a value of *PAY_PER_REQUEST*.
-
-<details>
-<summary><strong>Hint 1</strong></summary>
-<p>
+To do this, remove the *ProvisionedThroughput* configuration on the *RideRecordTable* CloudFormation resource and add the *BillingMode* key with a value of *PAY_PER_REQUEST*.
 
 Reference the CloudFormation documentation here:
 
 * [CloudFormation AWS::DynamoDB::Table](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html)
-
-Remove the [*ProvisionedThroughput*](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html#cfn-dynamodb-table-provisionedthroughput) key and add the [*BillingMode*](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html#cfn-dynamodb-table-billingmode) key.
-</p>
-</details>
 
 <details>
 <summary><strong>Answer</strong></summary>
@@ -369,28 +413,200 @@ Remove the [*ProvisionedThroughput*](https://docs.aws.amazon.com/AWSCloudFormati
 </details>
 
 
-### 3. Refactor handlers/put_ride_record.py in wild-rydes-ride-record to support API Gateway and SNS events
-Refactor *handlers/put_ride_record.py* so there are Lambda functions for both API Gateway and SNS. This allows the code to handle different use cases with minimal code duplication. You'll do this by replacing *PutRideRecord* with *PutRideRecordSns* and *PutRideRecordHttp*.
+### 3. Refactor *handlers/put_ride_record.py* in *wild-rydes-ride-record* to support API Gateway and SNS events
+Refactor *handlers/put_ride_record.py* so there are separate handler functions for both API Gateway and SNS events and a function to write data to DynamoDB. To do this we want to ensure that there is a logical separation in our code between the handling of invocation events and the writing of data to DynamoDB.
 
-#### Create handlers/put_ride_record.put_ride_record
-Create the Python function put_ride_record() in the file *handlers/put_ride_record.py*. This will handle the common code for inserting ride data into DynamoDB. The function will take a ride event data and put it into DynamoDB.
+Look at the current *handler()* code in *handlers/put_ride_record.py*:
+```python
+def handler(event, context):
+    '''Function entry'''
+    _logger.info('Event received: {}'.format(json.dumps(event)))
 
-The ride event has the following shape:
+    ride_record = json.loads(event.get('body')
+
+    try:
+        DDT.put_item(
+            TableName=DDB_TABLE_NAME,
+            Item=ride_record
+        )
+    except Exception as e:
+        _logger.exception(e)
+        raise e
+
+    resp = {
+        'statusCode': 201,
+        'body': json.dumps({'success': True})
+    }
+
+    _logger.info('Response: {}'.format(json.dumps(resp)))
+
+    return resp
 ```
-```
 
-<!-- FIXME: Add instructions -->
+The *handler()* function does the following:
+
+* Receive an event
+* Extracts ride data from it
+* Writes it to DynamoDB
+* Respond back to API Gateway
+
+We want to split the event handling from the writing to DynamoDB in the next few steps. Once you are done, you will end up with the three following Python functions:
+
+* *handler_http()*
+* *handler_sns()*
+* *_put_ride_record()*
+
+#### Create *handlers/put_ride_record.handler_http()*
+Create the Python function *handler_http()* in the *handlers/put_ride_record.py* file.
+
+This function will:
+* Be triggered by an API Gateway event
+* Extract the ride information from the `body` key of the API Gateway event
+  * Also convert the data from JSON to a Python dictionary by using *json.dumps()*
+* Pass the ride information to the *_put_ride_record()* Python function (this function is to be written later)
+* Return an HTTP 201 response to API Gateway
+
+The function is almost identical to the existing *handler()* function. The exception is where *handler()* attempts to write to DynamoDB, *handler_http()* will call *_put_ride_record()* and pass ride data to it.
+
+<details>
+<summary><strong>API Gateway Event</strong></summary>
+<p>
+
+```
+{
+    "resource": "/record",
+    "path": "/record",
+    "httpMethod": "POST",
+    "headers": {
+        "Accept": "*/*",
+        "CloudFront-Forwarded-Proto": "https",
+        "CloudFront-Is-Desktop-Viewer": "true",
+        "CloudFront-Is-Mobile-Viewer": "false",
+        "CloudFront-Is-SmartTV-Viewer": "false",
+        "CloudFront-Is-Tablet-Viewer": "false",
+        "CloudFront-Viewer-Country": "US",
+        "content-type": "application/json",
+        "Host": "6u0f8wo646.execute-api.us-east-1.amazonaws.com",
+        "User-Agent": "curl/7.54.0",
+        "Via": "2.0 488ca64b2230001b81f1cbf87d34963b.cloudfront.net (CloudFront)",
+        "X-Amz-Cf-Id": "EbJtXrattxCp_kGiAvOkZQfqrU7GaCnWQOBd_sqWLOu1CI3mg5hzew==",
+        "X-Amzn-Trace-Id": "Root=1-5b6e22fc-caa80860f02a362eda99cf9c",
+        "X-Forwarded-For": "73.17.175.174, 52.46.29.59",
+        "X-Forwarded-Port": "443",
+        "X-Forwarded-Proto": "https"
+    },
+    "queryStringParameters": null,
+    "pathParameters": null,
+    "stageVariables": null,
+    "requestContext": {
+        "resourceId": "spy0ia",
+        "resourcePath": "/record",
+        "httpMethod": "POST",
+        "extendedRequestId": "LbpnYHl3oAMFYUg=",
+        "requestTime": "10/Aug/2018:23:42:52 +0000",
+        "path": "/dev/record",
+        "accountId": "144121712529",
+        "protocol": "HTTP/1.1",
+        "stage": "dev",
+        "requestTimeEpoch": 1533944572060,
+        "requestId": "18bb8de3-9cf7-11e8-aa6f-eda086839e1d",
+        "identity": {
+            "cognitoIdentityPoolId": null,
+            "accountId": null,
+            "cognitoIdentityId": null,
+            "caller": null,
+            "sourceIp": "73.17.175.174",
+            "accessKey": null,
+            "cognitoAuthenticationType": null,
+            "cognitoAuthenticationProvider": null,
+            "userArn": null,
+            "userAgent": "curl/7.54.0",
+            "user": null
+        },
+        "apiId": "6u0f8wo646"
+    },
+    "body": "{\"RideId\": \"cb4e0e60-9c23-11e8-af29-8a060cb55967\", \"Unicorn\": {\"Name\": \"Bucephalus\", \"Color\": \"Golden\"}, \"RequestTime\": \"2018-08-09 22:30:18.347888\"}",
+    "isBase64Encoded": false
+}
+```
+</p>
+</details>
+
+<details>
+<summary><strong>Answer</strong></summary>
+<p>
+
 ```diff
-```
+--- a/handlers/put_ride_record.py
++++ b/handlers/put_ride_record.py
+@@ -22,6 +22,23 @@ DDB_TABLE_HASH_KEY = os.environ.get('DDB_TABLE_HASH_KEY')
+ dynamodb = boto3.resource('dynamodb')
+ DDT = dynamodb.Table(DDB_TABLE_NAME)
 
-#### Create handlers/put_ride_record.handler_http
-Create the Python function *handler_http()* in the file *handlers/put_ride_record.py*. This function will take an API Gateway event, extract the ride information from the `body` key, and pass it to the *put_ride_record()* Python function.
++def handler_http(event, context):
++    '''Function entry'''
++    _logger.info('Event received: {}'.format(json.dumps(event)))
++
++    ride_record = json.loads(event.get('body'))
++
++    _put_ride_record(ride_record)
++
++    resp = {
++        'statusCode': 201,
++        'body': json.dumps({'success': True})
++    }
++
++    _logger.info('Response: {}'.format(json.dumps(resp)))
++
++    return resp
++
+
+ @thundra
+ def handler(event, context):
+```
+</p>
+</details>
+
+
+#### Create *handlers/put_ride_record.handler_sns()*
+Create the Python function *handler_sns()* in the file *handlers/put_ride_record.py*.
+
+This function will:
+* Be triggered by an SNS event
+* Extract the ride information from the `Records[0].Sns.Message` key of the API Gateway event
+  * Also convert the data from JSON to a Python dictionary by using *json.dumps()*
+* Pass the ride information to the *_put_ride_record()* Python function.
+* This handler function does not need to return a response
+
 
 <details>
 <summary><strong>API Gateway Event</strong></summary>
 <p>
 
 ```
+{
+  "Records": [
+    {
+      "EventVersion": "1.0",
+      "EventSubscriptionArn": "arn:aws:sns:us-east-1:{{accountId}}:ExampleTopic",
+      "EventSource": "aws:sns",
+      "Sns": {
+        "SignatureVersion": "1",
+        "Timestamp": "1970-01-01T00:00:00.000Z",
+        "Signature": "EXAMPLE",
+        "SigningCertUrl": "EXAMPLE",
+        "MessageId": "95df01b4-ee98-5cb9-9903-4c221d41eb5e",
+        "Message": "{\"RideId\": \"cb4e0e60-9c23-11e8-af29-8a060cb55967\", \"Unicorn\": {\"Name\": \"Bucephalus\", \"Color\": \"Golden\"}, \"RequestTime\": \"2018-08-09 22:30:18.347888\"}",
+        "MessageAttributes": {},
+        "Type": "Notification",
+        "UnsubscribeUrl": "EXAMPLE",
+        "TopicArn": "arn:aws:sns:us-east-1:123456789012:ExampleTopic",
+        "Subject": "TestInvoke"
+      }
+    }
+  ]
+}
+
 ```
 </p>
 </details>
@@ -399,115 +615,417 @@ Create the Python function *handler_http()* in the file *handlers/put_ride_recor
 <summary><strong>Answer</strong></summary>
 <p>
 
-```python
+```diff
+--- a/handlers/put_ride_record.py
++++ b/handlers/put_ride_record.py
+@@ -22,6 +22,19 @@ DDB_TABLE_HASH_KEY = os.environ.get('DDB_TABLE_HASH_KEY')
+ dynamodb = boto3.resource('dynamodb')
+ DDT = dynamodb.Table(DDB_TABLE_NAME)
+
++
++def _put_ride_record(ride_record):
++    '''Write ride_record to DDB'''
++    try:
++        DDT.put_item(
++            TableName=DDB_TABLE_NAME,
++            Item=ride_record
++        )
++    except Exception as e:
++        _logger.exception(e)
++        raise e
++
++
+ def handler_http(event, context):
+     '''Function entry'''
+     _logger.info('Event received: {}'.format(json.dumps(event)))
 ```
 </p>
 </details>
 
-
-#### Create handlers/put_ride_record.handler_sns
-Create the Python function *handler_http()* in the file *handlers/put_ride_record.py*. This function will take an SNS event, extract the ride information from the `Records[0].Sns.Message` key, and pass it to the *put_ride_record()* Python function.
-
-<details>
-<summary><strong>API Gateway Event</strong></summary>
-<p>
-
-```
-```
-</p>
-</details>
-
-<details>
-<summary><strong>Answer</strong></summary>
-<p>
-
-```python
-```
-</p>
-</details>
-
-### 4. Create new function handlers for different event sources in wild-rydes-ride-record
-Add new function handlers for the new Python functions.
-
-#### Update *PutRideRecord* function to become *PutRideRecordHttp* in *serverless.yml*
-<!-- FIXME: Will this cause a service disruption? -->
-Rename *PutRideRecord* to *PutRideRecordHttp*.
-
-*NOTE: This will change the name of the CloudWatch log group where log messages are sent to. In our case this change doesn't matter but it may in a production nvironment. We're renaming the function for clarity and ease of understanding.*
+#### Create *handlers/put_ride_record._put_ride_record()*
+Create the function *_put_ride_record()* which takes a Python dictionary of ride information and writes it to DynamoDB. Use the existing *handler()* function for reference in how to do this.
 
 <details>
 <summary><strong>Answer</strong></summary>
 <p>
 
-```python
+```diff
+--- a/handlers/put_ride_record.py
++++ b/handlers/put_ride_record.py
+@@ -22,6 +22,19 @@ DDB_TABLE_HASH_KEY = os.environ.get('DDB_TABLE_HASH_KEY')
+ dynamodb = boto3.resource('dynamodb')
+ DDT = dynamodb.Table(DDB_TABLE_NAME)
+
++
++def _put_ride_record(ride_record):
++    '''Write ride_record to DDB'''
++    try:
++        DDT.put_item(
++            TableName=DDB_TABLE_NAME,
++            Item=ride_record
++        )
++    except Exception as e:
++        _logger.exception(e)
++        raise e
++
++
+ def handler_http(event, context):
+     '''Function entry'''
+     _logger.info('Event received: {}'.format(json.dumps(event)))
 ```
 </p>
 </details>
 
-#### Create PutRideRecordSns function in serverless.yml
-Add a Lambda function for *PutRideRecordSns*. This function will be much like *PutRideRecordHttp* but will take an SNS event. You will need to get the ARN of the SNS topic from step 1 via SSM Parameter Store.
+
+#### Add Thundra support to new functions.
+Add the *@thundra* decorator to the *handler_http()* and *handler_sns()* functions to initialize the agent.
+
+<details>
+<summary><strong>Answer</strong></summary>
+<p>
+
+```diff
+--- a/handlers/put_ride_record.py
++++ b/handlers/put_ride_record.py
+@@ -35,6 +35,7 @@ def _put_ride_record(ride_record):
+         raise e
+
+
++@thundra
+ def handler_http(event, context):
+     '''Function entry'''
+     _logger.info('Event received: {}'.format(json.dumps(event)))
+@@ -53,6 +54,7 @@ def handler_http(event, context):
+     return resp
+
+
++@thundra
+ def handler_sns(event, context):
+     '''Function entry'''
+     _logger.info('Event received: {}'.format(json.dumps(event)))
+```
+</p>
+</details>
+
+Now add the *@Traceable* decorator to the *_put_ride_record()* function.
+
+<details>
+<summary><strong>Answer</strong></summary>
+<p>
+
+```diff
+--- a/handlers/put_ride_record.py
++++ b/handlers/put_ride_record.py
+@@ -7,6 +7,7 @@ import os
+ import boto3
+
+ from thundra.thundra_agent import Thundra
++from thundra.plugins.trace.traceable import Traceable
+ THUNDRA_API_KEY = os.environ.get('THUNDRA_API_KEY', '')
+ thundra = Thundra(api_key=THUNDRA_API_KEY)
+
+@@ -23,6 +24,7 @@ dynamodb = boto3.resource('dynamodb')
+ DDT = dynamodb.Table(DDB_TABLE_NAME)
+
+
++@Traceable(trace_args=True, trace_return_value=True)
+ def _put_ride_record(ride_record):
+     '''Write ride_record to DDB'''
+     try:
+```
+</p>
+</details>
+
+#### Remove *handler()* function
+Remove the old *handler()* function since it is no longer necessary.
+
+Expand below to see what the final file should look like.
+<details>
+<summary><strong>handlers/put_ride_record.py</strong></summary>
+<p>
+
+```python
+'''Put ride record'''
+
+import json
+import logging
+import os
+
+import boto3
+
+from thundra.thundra_agent import Thundra
+from thundra.plugins.trace.traceable import Traceable
+THUNDRA_API_KEY = os.environ.get('THUNDRA_API_KEY', '')
+thundra = Thundra(api_key=THUNDRA_API_KEY)
+
+from thundra.plugins.log.thundra_log_handler import ThundraLogHandler
+log_level = os.environ.get('LOG_LEVEL', 'INFO')
+logging.root.setLevel(logging.getLevelName(log_level))  # type: ignore
+_logger = logging.getLogger(__name__)
+_logger.addHandler(ThundraLogHandler())
+
+# DynamoDB
+DDB_TABLE_NAME = os.environ.get('DDB_TABLE_NAME')
+DDB_TABLE_HASH_KEY = os.environ.get('DDB_TABLE_HASH_KEY')
+dynamodb = boto3.resource('dynamodb')
+DDT = dynamodb.Table(DDB_TABLE_NAME)
+
+
+@Traceable(trace_args=True, trace_return_value=True)
+def _put_ride_record(ride_record):
+    '''Write ride_record to DDB'''
+    try:
+        DDT.put_item(
+            TableName=DDB_TABLE_NAME,
+            Item=ride_record
+        )
+    except Exception as e:
+        _logger.exception(e)
+        raise e
+
+
+@thundra
+def handler_http(event, context):
+    '''Function entry'''
+    _logger.info('Event received: {}'.format(json.dumps(event)))
+
+    ride_record = json.loads(event.get('body'))
+
+    _put_ride_record(ride_record)
+
+    resp = {
+        'statusCode': 201,
+        'body': json.dumps({'success': True})
+    }
+
+    _logger.info('Response: {}'.format(json.dumps(resp)))
+
+    return resp
+
+
+@thundra
+def handler_sns(event, context):
+    '''Function entry'''
+    _logger.info('Event received: {}'.format(json.dumps(event)))
+
+    ride_record = json.loads(event.get('Records')[0].get('Sns').get('Message'))
+
+    _put_ride_record(ride_record)
+
+```
+</p>
+</details>
+
+### 4. Create new function handlers in *wild-rydes-ride-record*
+Add new Lambda functions for the new Python function handlers. You'll do this by replacing the Lambda function *PutRideRecord* with *PutRideRecordSns* and *PutRideRecordHttp*.
+
+#### Update *PutRideRecord* function to become *PutRideRecordHttp*
+Rename the *PutRideRecord* Lambda function to *PutRideRecordHttp* in the *serverless.yml* file. After that, update the `handler` key's value to *handlers/put_ride_record.handler_http*.
+
+*NOTE: This will change the name of the CloudWatch log group where log messages are sent to. In our case this change doesn't matter but it may in a production environment. We're renaming the function for clarity and ease of understanding.*
+
+<details>
+<summary><strong>Answer</strong></summary>
+<p>
+
+```diff
+--- a/serverless.yml
++++ b/serverless.yml
+@@ -40,9 +40,9 @@ provider:
+           - Arn
+
+ functions:
+-  PutRideRecord:
+-    handler: handlers/put_ride_record.handler
+-    description: "Create Ride Record In Table"
++  PutRideRecordHttp:
++    handler: handlers/put_ride_record.handler_http
++    description: "Create Ride Record In Table via API Gateway"
+     memorySize: 128
+     timeout: 29
+     environment:
+```
+</p>
+</details>
+
+#### Create *PutRideRecordSns* function in *serverless.yml*
+Add a Lambda function for *PutRideRecordSns*. This function will be much like *PutRideRecordHttp* but will take an SNS event. You will need to get the ARN of the SNS topic from the SSM Parameter Store parameter named `/wild-rydes/STAGE/SnsTopicArn` where stage is the value of *${self:provider.stage}*.
 
 How to trigger a Lambda function via an SNS event can be found here:
+* [Serverless Framework SSM variables](https://serverless.com/framework/docs/providers/aws/guide/variables/#reference-variables-using-the-ssm-parameter-store)
 * [Serverless Framework SNS Events](https://serverless.com/framework/docs/providers/aws/events/sns/)
 
 <details>
-<summary><strong>Hint 1</strong></summary>
+<summary><strong>Answer</strong></summary>
 <p>
 
-* Obtain the SNS topic ARN from AWS SSM Param Store
-* Add the SNS event to the *PutRideRecordSns* function
+```diff
+--- a/serverless.yml
++++ b/serverless.yml
+@@ -17,6 +17,7 @@ custom:
+   sevrice_url_path_base: '/record'
 
+   thundraApiKey: "${ssm:/thundra/root/api-key}"
++  wild_rydes_sns_topic_arn: "${ssm:/wild-rydes/training-dev/SnsTopicArn}"
+
+ provider:
+   name: aws
+@@ -53,6 +54,17 @@ functions:
+           method: POST
+           path: "${self:custom.sevrice_url_path_base}"
+
++  PutRideRecordSns:
++    handler: handlers/put_ride_record.handler_sns
++    description: "Create Ride Record In Table via SNS event"
++    memorySize: 128
++    timeout: 29
++    environment:
++      DDB_TABLE_NAME:
++        Ref: RideRecordTable
++    events:
++      - sns: "${self:custom.wild_rydes_sns_topic_arn}"
++
+ resources:
+   Resources:
+     RideRecordTable:
+```
 </p>
 </details>
+
+### 5. Add dead letter queue to _PutRideRecordSns_
+Add a dead letter queue for the _PutRideRecordSns_ Lambda function. While SNS guarantees message delivery to our Lambda function, our function is not guaranteed to execute successfully. When a Lambda function is triggered by an SNS event and the Lambda function fails to complete successfully, [Lambda will retry the function up to twice more with delays in between invocations](https://docs.aws.amazon.com/lambda/latest/dg/retries-on-errors.html). If all three invocations fail we want to drop the event is either discarded, or, sent to an SNS topic or SQS queue if a [dead letter configuration](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-lambda-function-deadletterconfig.html) exists. We’ll add an SQS queue in this step and we'll do this by using a Serverless Framework plugin called [serverless-plugin-lambda-dead-letter](https://github.com/gmetzker/serverless-plugin-lambda-dead-letter).
+
+
+#### Serverless Framework plugin
+Install the Serverless Framework plugin serverless-plugin-lambda-dead-letter.
+```
+$ sls plugin install -n serverless-plugin-lambda-dead-letter
+```
+<details>
+<summary><strong>Output</strong></summary>
+<p>
+
+```
+Serverless: Installing plugin "serverless-plugin-lambda-dead-letter@latest" (this might take a few seconds...)
+Serverless: Successfully installed "serverless-plugin-lambda-dead-letter@latest"
+```
+</p>
+</details>
+
+#### SQS Queue
+Create an SQS queue. The SQS Queue's CloudFormation resource name should be *PutRideRecordSnsDlq*. You won't need to configure any properties on the CloudFormation resource.
+
+Use the CloudFormation documentation linked below.
+* [CloudFormation AWS::SQS::Queue](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-sqs-queues.html)
 
 <details>
 <summary><strong>Answer</strong></summary>
 <p>
 
-```python
+```diff
+--- a/serverless.yml
++++ b/serverless.yml
+@@ -93,6 +103,9 @@ resources:
+               - ".amazonaws.com/${self:custom.stage}"
+               - "${self:custom.sevrice_url_path_base}"
+
++    PutRideRecordSnsDlq:
++      Type: AWS::SQS::Queue
++
+   Outputs:
+     RideRecordUrl:
+       Description: "URL of service"
 ```
 </p>
 </details>
 
-### 6. Add dead letter queue to _PutRideRecordSns_
-Add a dead letter queue for the _PutRideRecordSns_ Lambda function. We need a place to store messages delivered by SNS when if _PutRideRecordSns_ function failed to successfully execute after it has exhausted its retry limit. While we've handled the DynamoDB scaling issue that would most easily trigger this scenario, we should still handle the inevitable unpredictability of the cloud.
+#### IAM permissions
+Give the *PutRideRecordSns* Lambda function the ability to write to the queue.  Do this by adding an additional IAM policy statement under the `provider.iamRoleStatements` key that allows the *sqs:SendMessage* action on the new SQS queue. You can look at the existing statement allowing writes to DynamoDB for guidance.
 
-We'll use the Serverless Framework plugin called.....
+The following documentation resources will help you accomplish this.
+
+* [Serverless Framework IAM Role Statements](https://serverless.com/framework/docs/providers/aws/guide/iam/)
+* [SQS IAM Permissions](https://docs.aws.amazon.com/IAM/latest/UserGuide/list_amazonsqs.html)
+* [CloudFormation AWS::SQS::Queue - Return Values](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-sqs-queues.html#aws-properties-sqs-queues-ref)
 
 <details>
 <summary><strong>Answer</strong></summary>
 <p>
 
-```yaml
+```diff
+--- a/serverless.yml
++++ b/serverless.yml
+@@ -39,6 +39,13 @@ provider:
+         Fn::GetAtt:
+           - RideRecordTable
+           - Arn
++    - Effect: Allow
++      Action:
++        - sqs:SendMessage
++      Resource:
++        Fn::GetAtt:
++          - PutRideRecordSnsDlq
++          - Arn
+
+ functions:
+   PutRideRecordHttp:
 ```
 </p>
 </details>
 
-### 7. Deploy *wild-rides-ryde-record*
-Deploy the updates *wild-rides-ryde-record* service.
+#### Lambda Function Update
+Add the dead letter queue configuration to the *PutRideRecordSns* Lambda function. You do this by adding a `deadLetter.targetArn.GetResourceArn` key for the function and it’s value is the name of the SQS queue CloudFormation resource, *PutRideRecordSnsDlq*.
+
+You can refer to the documentation for *serverless-plugin-lambda-dead-letter*.
+
+* [serverless-plugin-lambda-dead-letter Method-3: Use a queue/topic created in the resources](https://github.com/gmetzker/serverless-plugin-lambda-dead-letter#method-3)
+
+<details>
+<summary><strong>Output</strong></summary>
+<p>
+
+```diff
+@@ -62,6 +62,9 @@ functions:
+     environment:
+       DDB_TABLE_NAME:
+         Ref: RideRecordTable
++    deadLetter:
++      targetArn:
++        GetResourceArn: PutRideRecordSnsDlq
+     events:
+       - sns: "${self:custom.wild_rydes_sns_topic_arn}"
+
+```
+</p>
+</details>
+
+Now if there’s a failure by your *PutRideRecordSns* Lambda function to process an event, the event won’t be lost and can be reprocessed later.
+
+### 6. Deploy *wild-rides-ryde-record*
+Deploy the updated *wild-rides-ryde-record* service.
 
 ```
 $ sls deploy -v
 ```
 
-### 8. Use Artillery to trigger the RequestRide function.
-Using Artillery, trigger the *RequestRide* function. This time you should see noe errors.
+### 7. Use Artillery to trigger the RequestRide function.
+Using Artillery, trigger the *RequestRide* function. This time you should see no errors.
 ```
 $ artillery run -t <ServiceEndpoint> -c tests/artillery-high-load-config.yml tests/artillery.yml
 ```
 ```
 All virtual users finished
-Summary report @ 00:20:35(+0000) 2018-12-11
+Summary report @ 18:10:15(+0000) 2018-12-13
   Scenarios launched:  1800
   Scenarios completed: 1800
   Requests completed:  1800
-  RPS sent: 8.7
+  RPS sent: 9.98
   Request latency:
-    min: 818.6
-    max: 29396.2
-    median: 26876.8
-    p95: 29345.7
-    p99: 29352.4
+    min: 450.1
+    max: 7330.3
+    median: 575.7
+    p95: 734.9
+    p99: 5031.6
   Scenario counts:
     0: 1800 (100%)
   Codes:
@@ -539,7 +1057,7 @@ Q. Calculate the costs of Lambda and API Gateway for _wild-rydes-ride-record_ _P
 
 Q. How might you reorder the steps in this workshop if you wanted to make incremental changes that you could deploy along the way instead of making one larger refactoring?
 
-The instructions in this module are meant to be easy to follow but aren't necesarilly the best order of operations for refactoring an application. You can reorder these steps (and add additional steps) to you make incremental progress which makes tracking down mistakes easier.
+The instructions in this module are meant to be easy to follow but aren't necessarily the best order of operations for refactoring an application. You can reorder these steps (and add additional steps) to you make incremental progress which makes tracking down mistakes easier.
 
 <details>
 <summary><strong>Output</strong></summary>
@@ -571,4 +1089,8 @@ We should cover the questions about this in the intro
 -->
 
 ### 4. SNS
-Q. Create a dead letter queue processor function.
+Q. what is the difference in performance on wild-rydes after switching to SNS?
+
+Q. What is the difference in *RequestRide* invocation duration performance now that you publish to SNS instead of API Gateway.
+
+Q. **EXTRA CREDIT:** Create a dead letter queue processor function.
