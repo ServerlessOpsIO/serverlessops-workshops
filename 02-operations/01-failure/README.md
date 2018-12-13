@@ -372,11 +372,11 @@ Error codes:
 
 ### 3. Collect metrics and logs from *wild-rydes* *RequestRide*
 <!-- Start collecting traces and logs -->
-Start collecting metrics and logs from *RequestRide* in *wild-rydes* to the Thundra platform. We'll instrument this function by using the [Thundra Python agent](https://github.com/thundra-io/thundra-lambda-agent-python). (The *PutRideRecord* function in *wild-rydes-ride-record* has already been done for you.) By instrumenting the function we'll allow the Thundra platform to start collecting invocation metrics, logs, and trace the length of time spent performing different actions in the Lambda function's code.
+Start collecting metrics and logs from *RequestRide* in *wild-rydes* to the Thundra platform. We'll instrument this function by using the [Thundra Python agent](https://github.com/thundra-io/thundra-lambda-agent-python). (You;; instrument the Lambda functions in *wild-rydes-ride-record* in a later module.) By instrumenting the function we'll allow the Thundra platform to start collecting invocation metrics, logs, and trace the length of time spent performing different actions in the Lambda function's code.
 
 *NOTE: Thundra has the ability to automatically instrument functions through the Serverless Framework plugin [serverless-plugin-thundra](https://github.com/thundra-io/serverless-plugin-thundra). Thiw workshop indruments the function manually to demonstrate the actual work involved. We feel this is important for those coming to serverless without an extensive coding background. We want people to see how approachable this work is for non-developers.*
 
-#### Add Thundra module and initialize it in the *RequestRide* function.
+#### Add Thundra module
 <!-- FIXME: Evaluate Thundra automated for time. -->
 Add the Thundra Python module to wild-rydes. By adding the module we allow Thundra to start collecting basic invocation metrics such as duration, memory usage, and CPU usage.
 
@@ -428,7 +428,7 @@ You should consider upgrading via the 'pip install --upgrade pip' command.
 </details>
 
 
-##### In *serverless.yml*
+#### Update *serverless.yml*
 <!-- Add API key to serverless.yml -->
 Add the Thundra API key to the *serverless.yml* file. This API key is necessary for the Thundra agent to ship to the platform. You'll fetch the key value from AWS SSM Parameter Store where we've centrally stored it and then configure it be an environmental variable value in the Lambda function's runtime environment.
 
@@ -460,6 +460,7 @@ In the *serverless.yml* file create the key *custom.thundraApiKey*. (You're crea
 Next, create create an environmental variable key called `THUNDRA_API_KEY`. Its value will come from referencing the *custom.thundraApiKey* key in the previous step.
 
 * [Reference Properties In *serverless.yml*](https://serverless.com/framework/docs/providers/aws/guide/variables/#reference-properties-in-serverlessyml)
+* [AWS Lambda Environmental Variables](https://serverless.com/framework/docs/providers/aws/guide/functions#environment-variables)
 
 <details>
 <summary><strong>Answer</strong></summary>
@@ -480,7 +481,7 @@ Next, create create an environmental variable key called `THUNDRA_API_KEY`. Its 
 </p>
 </details>
 
-##### In *handlers/request_ride.py*
+#### Update *handlers/request_ride.py*
 Import the *thundra* Python module in *handlers/request_ride.py*. Then, initialize it using the `THUNDRA_API_KEY` value obtained from the runtime environment. Finally, add the Python function decorator to the *handler()* function in the file. See the file diff below for what needs to be added.
 
 ```diff
