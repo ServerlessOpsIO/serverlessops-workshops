@@ -702,20 +702,32 @@ Summary report @ 00:20:35(+0000) 2018-12-11
 <!-- we have two issues: 1) bad response from wild-rydes-ride-record, 2) retries to wild-rydes-ride-record cause RequestRide to timeout -->
 
 <!-- login -->
-Login to Thundra
+Login to Thundra. (Credentials will be provided to you.)
 * https://console.thundra.io/landing
+<!-- FIXME: Add screenshot -->
+
 
 <!-- Navigate to functions -->
-
+Navigate to the "Functions" screen by clicking the Functions icon in the left sidebar. (If you didn't land on that page already?)
+<!-- FIXME: Add screenshot -->
 
 <!-- Select RequestRide; filter for errors; investigate one of them -->
+The Functions screen will give you the most recently executed functions. In the search box enter your workshop user which you use as your deploy stage (e.g. *user0*). This filter the function list to show only your own. Next, click on the *RequestRide* function. The function will be prefixed with the service stack name and your user so it will be named something like this, *wild-rydes-user0-RequestRide*.
+<!-- FIXME: Add screenshot -->
 
+<!-- Find faulty -->
+Filter your function invocations by changing the "FAULTY" value from "ALL" to "TRUE" and then click the "FETCH" button to the right. This will cause only the handful of invocations that errored to display. All the functions should have an "Error Type" value of *TimeoutError*. Select one of them to investigate the details of that invocation.
+<!-- FIXME: Add screenshot -->
 
-<!-- see timeout -->
-<!-- function marked with X -->
+<!-- Investigate an invocation -->
+Look at one of the failed invocations. When looking at the trace chart, notice that *_post_ride_record()* takes the majority of the invocation time. The issue of this function timing out appears to stem from the function that communicates with the wild-rydes-ride-record service. We'll investigate this
+<!-- FIXME: Add screenshot -->
 
-<!-- Select PutRideRecord; filter for errors; investigate one of them -->
-<!-- see error -->
+<!-- FIXME: Can't find failed invocations! appears to be due to my raise of DDB error?
+Go back to the function screen, filter by your user, and click on the *PutRideRecord* function.
+-->
+
+<!-- FIXME: Add screenshot -->
 
 
 
