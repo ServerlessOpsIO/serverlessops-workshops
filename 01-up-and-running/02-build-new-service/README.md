@@ -23,7 +23,8 @@ The new service will be a RESTful API using API Gateway and AWS Lambda. Data sen
   'RideId': '30c565ea-a494-11e8-a910-425746ae81de',
   'Unicorn': {
     'Color': 'White',
-    'Name': 'Shadowfax'
+    'Name': 'Shadowfax',
+    'DeviceId': '21fc3d3a-f26a-11e8-9109-8c859074f8c7'
   }
 }
 ```
@@ -151,7 +152,7 @@ functions:
     handler: handlers/put_ride_record.handler
     description: "Create Ride Record In Table"
     memorySize: 128
-    timeout: 30
+    timeout: 29
 
 
 # Addtional service resources and configuration.
@@ -282,7 +283,7 @@ functions:
     handler: handlers/put_ride_record.handler
     description: "Create Ride Record In Table"
     memorySize: 128
-    timeout: 30
+    timeout: 29
     environment:
       DDB_TABLE_NAME:
         Ref: RideRecordTable
@@ -577,7 +578,7 @@ functions:
     handler: handlers/request_ride.handler
     description: "Request a ride."
     memorySize: 128
-    timeout: 30
+    timeout: 29
     environment:
       REQUEST_UNICORN_URL: "${self:custom.request_unicorn_url}"
       RIDE_RECORD_URL: "${self:custom.ride_record_url}"
@@ -726,7 +727,7 @@ $ sls invoke -f RequestRide -p tests/events/request-ride-event.json
 ```json
 {
     "statusCode": 201,
-    "body": "{\"RideId\": \"f59380c4-b172-11e8-b5d7-f669e247359d\", \"Unicorn\": {\"Color\": \"Yellow\", \"Name\": \"Rocinante\"}, \"RequestTime\": \"2018-09-06 01:19:53.927290\"}",
+    "body": "{\"RideId\": \"f59380c4-b172-11e8-b5d7-f669e247359d\", \"Unicorn\": {\"Color\": \"Yellow\", \"Name\": \"Rocinante\", \"DeviceId\": \"2279df58-f26a-11e8-9b3b-8c859074f8c7\"}, \"RequestTime\": \"2018-09-06 01:19:53.927290\"}",
     "headers": {
         "Access-Control-Allow-Origin": "*"
     }
@@ -831,8 +832,8 @@ Q. What should you do to help ensure _PutRideRecord_ succeeds if the first write
 <summary><strong>Answer</strong></summary>
 <p>
 
-* Implement exponential back off in the function. However, you have only upt to 30s because API Gateway has a 30s timeout
-* Make DynamoDB scale more agressively.
+* Implement exponential back off in the function. However, you have only upt to 30s because API Gateway has a 29s timeout
+* Make DynamoDB scale more aggressively.
 * Implement an SQS queue.
 
 </p>

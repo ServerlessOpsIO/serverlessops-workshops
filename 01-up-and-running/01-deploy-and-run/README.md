@@ -394,7 +394,7 @@ $ sls invoke -f RequestRide -p tests/events/request-ride-event.json
 ```json
 {
     "statusCode": 201,
-    "body": "{\"RideId\": \"30c565ea-a494-11e8-a910-425746ae81de\", \"Unicorn\": {\"Name\": \"Shadowfax\", \"Color\": \"White\"}, \"RequestTime\": \"2018-08-20 16:15:01.515825\"}",
+    "body": "{\"RideId\": \"30c565ea-a494-11e8-a910-425746ae81de\", \"Unicorn\": {\"Name\": \"Shadowfax\", \"Color\": \"White\", \"DeviceId\": \"21fc3d3a-f26a-11e8-9109-8c859074f8c7\"}, \"RequestTime\": \"2018-08-20 16:15:01.515825\"}",
     "headers": {
         "Access-Control-Allow-Origin": "*"
     }
@@ -463,7 +463,7 @@ functions:
     handler: handlers/request_ride.handler
     description: "Request a ride."
     memorySize: 128
-    timeout: 30
+    timeout: 29
     environment:
       REQUEST_UNICORN_URL: "${self:custom.request_unicorn_url}"
     events:
