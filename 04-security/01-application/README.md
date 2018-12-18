@@ -12,7 +12,8 @@ We'll work to find and fix these issues.
 **Goals:**
 * Add an API Gateway authorizer
 * Secure and manage an API token.
-
+* Find and fix a security vulnerability in a third-party code r
+esource
 
 ## Instructions
 
@@ -63,24 +64,9 @@ $ curl
 
 <!-- We can split here if we want to -->
 ### 5. Update wild-rydes to use wild-rydes-ride-fleet API key.
-Update API Gateway to require AWS Cognito.
+Update wild-rydes to obtain the wild-rydes-ride-fleet API key and an use it when making requests
 
-<details>
-<summary><strong>Hint</strong></summary>
-<p>
-
-Show Cognito / API Gateway docs
-</p>
-</details>
-<details>
-<summary><strong>Answer</strong></summary>
-<p>
-
-Show serverless.yml
-</p>
-</details>
-
-### 6. Review / Fix Secrets Management
+Secrets management methods
 1) **Deploy Time Environmental Variables:** Pass in the value using an environmental variable during deploy time. *Do not use this method except as a last resort. It's better than nothing but the next options are better.*
 1) **AWS SSM Parameter Store**: Use [AWS Param Store](https://aws.amazon.com/systems-manager/features/#Parameter_Store) to centrally store the value and fetch it from there. There are two methods of using Param Store. One is via a deploy time value lookup by Serverless Framework and the second is having the _SendToGitter_ function lookup the value in Param Store during execution. When choosing between the two, pay attention to the amount of exposure the key will receive based on the method chosen
 1) **AWS Secrets Manager**: Use [AWS Secrets Manager](https://aws.amazon.com/secrets-manager/) to manage the token value. While Secrets Manager and Param Store appear similar, compare the feature set and cost of Secrets Manager against Param Store.
@@ -89,7 +75,7 @@ If you're unsure what to do, choose AWS SSM Parameter Store.
 
 
 <!-- Update wild-rydes to use vulnerable version of requests -->
-### 7. Insecure Application Dependency
+### 6. Insecure Application Dependency
 
 The wild-rydes-feedback has an application dependency vulnerability. Click here to see more about the vulnerability. [![Known Vulnerabilities](https://snyk.io/test/github/ServerlessOpsIO/wild-rydes-feedback/badge.svg)](https://snyk.io/test/github/ServerlessOpsIO/wild-rydes-feedback)
 
@@ -99,7 +85,8 @@ Fix the vulnerability by update the library.
 <summary><strong>Hint</strong></summary>
 <p>
 
-Update the _requests_ module in _requirements.txt_ from version 2.19.1 to the latest version found here:
+Update the _requests_ module i
+n _requirements.txt_ from version 2.19.1 to the latest version found here:
 
 * https://pypi.org/project/requests/
 </p>
