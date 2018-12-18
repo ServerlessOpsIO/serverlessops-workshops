@@ -97,7 +97,11 @@ All the functions in wild-rydes-ride record have more IAM permissions than are n
 </details>
 
 
-### 3. Deploy updated services
+### 3. Write an AWS Config Rule to alert on open buckets.
+
+Create an [AWS Config](https://aws.amazon.com/config/) rule that will monitor and alert on the presence of open S3 buckets.
+
+### 4. Deploy updated services
 
 #### wild-rydes-data-lake
 Deploy the new *wild-rydes-data-lake* service.
@@ -112,10 +116,6 @@ $ sls deploy -v
 $ cd $WORKSHOP/wild-rydes-ride-record
 $ sls deploy -v
 ```
-### 4. Write an AWS Config Rule to alert on open buckets.
-
-Create an [AWS Config](https://aws.amazon.com/config/) rule that will monitor and alert on the presence of open S3 buckets.
-
 ## Q&A
 
 ### S3 Bucket Access
