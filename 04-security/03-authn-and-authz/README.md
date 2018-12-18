@@ -68,17 +68,7 @@ $ npm install
 $ sls deploy -v
 ```
 
-### 3. Sign and register for Wild Rydes
-Navigate to the newly updated application. If you can't remember the location of the website, do the following steps and get the _StaticSiteS3BucketWebsiteURL_ in _Stack Outputs_:
-
-```
-$ cd $WORKSHOP/wild-rydes
-$ sls info -v
-```
-
-Click the _Giddy Up_ button which will take you to the user registration page. Signup for the service with a valid email and provide a password. You'll receive an email to confirm your account. Once you confirm, login to the service.
-
-### 4. Update wild-rydes backend
+### 3. Update wild-rydes backend
 Update API Gateway to check Cognito credentials.
 
 <details>
@@ -117,6 +107,16 @@ Now deploy service.
 ```
 $ sls deploy -v
 ```
+
+### 4. Sign and register for Wild Rydes
+Navigate to the newly updated application. If you can't remember the location of the website, do the following steps and get the _StaticSiteS3BucketWebsiteURL_ in _Stack Outputs_:
+
+```
+$ cd $WORKSHOP/wild-rydes
+$ sls info -v
+```
+
+Click the _Giddy Up_ button which will take you to the user registration page. Signup for the service with a valid email and provide a password. You'll receive an email to confirm your account. Once you confirm, login to the service.
 
 ### 5. Request a ride from site
 Navigate to site and successfully request a ride.
