@@ -40,7 +40,7 @@ This workshop demonstrates typical security issues and implications around serve
 
 * [Application Security](./01-application/)
 * [Infrastructure Security](./02-infrastructure/)
-* [API Access](./03-api-access/)
+* [API Access](./03-authn-and-authz/)
 
 After the workshop the participant should be familiar with common serverless security issues, what to look for, and how to remediate them.
 
@@ -55,15 +55,4 @@ AWS Services used:
 * [Cognito](https://aws.amazon.com/cognito/)
 * [SSM Parameter Store](https://aws.amazon.com/systems-manager/features/#Parameter_Store)
 * [IAM](https://aws.amazon.com/iam/)
-
-3rd Party Services used:
-* [Gitter](https://gitter.im/home)
-
-Our tech stack is as follows.
-
-* [wild-rydes](https://github.com/ServerlessOpsIO/wild-rydes)
-  * Front end website and ride request backend
-* [wild-rydes-feedback](https://github.com/ServerlessOpsIO/wild-rydes-feedback)
-  * Ride feedback service
-
 
