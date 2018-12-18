@@ -40,7 +40,7 @@ This workshop demonstrates typical security issues and implications around serve
 
 * [Application Security](./01-application/)
 * [Infrastructure Security](./02-infrastructure/)
-* [API Access](./03-authn-and-authz/)
+* [Authentication And Authorization](./03-authn-and-authz/)
 
 After the workshop the participant should be familiar with common serverless security issues, what to look for, and how to remediate them.
 
