@@ -7,34 +7,89 @@ We'll work to find and fix these issues.
 ## Goals and Objectives:
 
 **Objectives:**
-* Understand the serverless security concerns of serverless.
+* Understand basic security concerns of serverless.
 
 **Goals:**
-* Evaluate a new application and fix the application security issues with it.
+* Add an API Gateway authorizer
+* Secure and manage an API token.
+
 
 ## Instructions
 
-### 1. Review / Fix Secrets Management
-The _SendToGitter_ Lambda function requires an access token to send messages. A (mock) token exists in the code. Find the token in the *wild-rydes-feedback* *handlers/send_to_gitter.py* file, remove it, and use a more secure way to distribute the token value to the function.
+### 1. Deploy services
 
-You can solve this problem a variety of ways. Some approaches are:
+#### wild-rydes-api-authorizor
+Deploy the new *wild-rydes-data-lake* service.
 
+```
+$ cd $WORKSHOP
+$ git clone https://github.com/ServerlessOpsIO/wild-rydes-data-lake.git
+$ cd wild-rydes-data-lake
+$ git checkout -b workshop-security-01
+$ npm install
+$ sls deploy -v
+```
+
+#### wild-rydes-ride-record
+```
+$ cd $WORKSHOP/wild-rydes-ride-record
+$ git clone https://github.com/ServerlessOpsIO/wild-rydes-ride-record.git
+$ git checkout -b workshop-security-01
+$ npm install
+$ sls deploy -v
+```
+
+### 2. Obtain API key for wild-rydes-ride-fleet
+
+
+### 3. Update wild-rydes-ride-fleet
+Update API Gateway to to call the API key service.
+
+
+### 4. Request a member of fleet using `curl`
+Attempt to use curl to request a ride.
+
+```
+$ curl ...
+```
+
+You should receive an access denied error.
+
+
+Now request using a token.
+```
+$ curl
+```
+
+<!-- We can split here if we want to -->
+### 5. Update wild-rydes to use wild-rydes-ride-fleet API key.
+Update API Gateway to require AWS Cognito.
+
+<details>
+<summary><strong>Hint</strong></summary>
+<p>
+
+Show Cognito / API Gateway docs
+</p>
+</details>
+<details>
+<summary><strong>Answer</strong></summary>
+<p>
+
+Show serverless.yml
+</p>
+</details>
+
+### 6. Review / Fix Secrets Management
 1) **Deploy Time Environmental Variables:** Pass in the value using an environmental variable during deploy time. *Do not use this method except as a last resort. It's better than nothing but the next options are better.*
 1) **AWS SSM Parameter Store**: Use [AWS Param Store](https://aws.amazon.com/systems-manager/features/#Parameter_Store) to centrally store the value and fetch it from there. There are two methods of using Param Store. One is via a deploy time value lookup by Serverless Framework and the second is having the _SendToGitter_ function lookup the value in Param Store during execution. When choosing between the two, pay attention to the amount of exposure the key will receive based on the method chosen
 1) **AWS Secrets Manager**: Use [AWS Secrets Manager](https://aws.amazon.com/secrets-manager/) to manage the token value. While Secrets Manager and Param Store appear similar, compare the feature set and cost of Secrets Manager against Param Store.
 
 If you're unsure what to do, choose AWS SSM Parameter Store.
 
-<details>
-<summary><strong>Hint</strong></summary>
-<p>
 
-The token value is: lz7puf62hei8f2mty2teuwq0m740i73kxm65iihy
-
-</p>
-</details>
-
-### 2. Insecure Application Dependency
+<!-- Update wild-rydes to use vulnerable version of requests -->
+### 7. Insecure Application Dependency
 
 The wild-rydes-feedback has an application dependency vulnerability. Click here to see more about the vulnerability. [![Known Vulnerabilities](https://snyk.io/test/github/ServerlessOpsIO/wild-rydes-feedback/badge.svg)](https://snyk.io/test/github/ServerlessOpsIO/wild-rydes-feedback)
 

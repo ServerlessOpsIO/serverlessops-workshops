@@ -4,7 +4,9 @@ Good ideas: https://www.puresec.io/blog/aws-security-best-practices-config-rules
 
 # Serverless Infrastructure Security
 
-In this module we'll add a new feature to Wild Rydes. However, this new feature has a variety of cloud infrastructure security issues that require fixing. We'll find and fix these issues typically by fixing AWS IAM issues.
+<!-- We could also use wild-ryde-data-lake instead for these tasks... A data lake is an awesoem place to have a breach! -->
+
+In this module we'll add a new service on the backend of Wild Rydes to stream ride requests data to an S3 bucket for further data analysis. Additionally, we've updated wild-rydes-ride-record to support ride update and cancellation operations.  However, both our new service and updated service have a variety of cloud infrastructure security issues that require fixing. We'll find and fix these issues typically by fixing AWS IAM issues.
 
 ## Goals and Objectives:
 
@@ -34,7 +36,30 @@ Once infrastructure security issues have been detected and remediated there shou
 
 ## Instructions
 
-### 1. Review and fix Security issues
+### 1. Deploy services
+
+#### wild-rydes-data-lake
+Deploy the new *wild-rydes-data-lake* service.
+
+```
+$ cd $WORKSHOP
+$ git clone https://github.com/ServerlessOpsIO/wild-rydes-data-lake.git
+$ cd wild-rydes-data-lake
+$ git checkout -b workshop-security-02
+$ npm install
+$ sls deploy -v
+```
+
+#### wild-rydes-ride-record
+```
+$ cd $WORKSHOP/wild-rydes-ride-record
+$ git clone https://github.com/ServerlessOpsIO/wild-rydes-ride-record.git
+$ git checkout -b workshop-security-02
+$ npm install
+$ sls deploy -v
+```
+
+### 2. Review and fix security issues
 
 This section has a number of security issues to be found and fixed. For now, stick to securing access to AWS resources.
 
@@ -44,22 +69,22 @@ Serverless Framework, by default, creates a single IAM role for an entire servic
 Use the [serverless-iam-roles-per-function](https://www.npmjs.com/package/serverless-iam-roles-per-function) Serverless Framework plugin to give each function its own individual; role. You can take the existing IAM role statements and apply them to the proper function.
 
 #### S3 bucket access
-The S3 bucket that feedback is deposited in is open to the world and this needs to be fixed. Limit bucket access to:
+The S3 bucket that ride data is deposited to in wild-rydes-data-lake is open to the world and this needs to be fixed. Limit bucket access to:
 
-* The _SendToS3Bucket_ Lambda function
+* The _SendToDataLake_ Lambda function
 
 <details>
 <summary><strong>Hint</strong></summary>
 <p>
 
-Remove the S3 bucket policy resource and update the _SendToS3Bucket_ IAM role.
+Remove the S3 bucket policy resource and update the _SendToDataLake_ IAM role.
 
 </p>
 </details>
 
 #### Reduced resource access
 
-The _DispatchFeedback_ and _SendToS3Bucket_ functions have extensive IAM permissions. Reduce them only to the operations they need in order to function.
+All the functions in wild-rydes-ride record have more IAM permissions than are needed. Reduce them only to the operations they need in order to function.
 
 <details>
 <summary><strong>Hint</strong></summary>
@@ -72,51 +97,22 @@ The _DispatchFeedback_ and _SendToS3Bucket_ functions have extensive IAM permiss
 </details>
 
 
-### 2. Deploy Wild Rydes Feedback
+### 3. Deploy updated services
 
-Deploy the new _wild-rydes-feedback_ service.
+#### wild-rydes-data-lake
+Deploy the new *wild-rydes-data-lake* service.
 
 ```
-$ cd $WORKSHOP
-$ git clone https://github.com/ServerlessOpsIO/wild-rydes-feedback.git
-$ cd wild-rydes-ride-fleet
-$ npm install
+$ cd $WORKSHOP/wild-rydes-data-lake
 $ sls deploy -v
 ```
 
-### 3. Deploy Updated Wild Rydes
-
-If you haven't already checked out the _wild-rydes_ Github repository then do so now.
-
+#### wild-rydes-ride-record
 ```
-$ cd $WORKSHOP
-$ git clone https://github.com/ServerlessOpsIO/wild-rydes.git
-```
-
-Deploy the new _wild-rydes_ GitHub branch. This branch has an update to the website frontend so users can enter in feedback that will be sent to the _wild-rydes-feedback_ service.
-
-```
-$ cd wild-rydes-ride-fleet
-$ git checkout security
-$ npm install
+$ cd $WORKSHOP/wild-rydes-ride-record
 $ sls deploy -v
 ```
-
-### 4. Use the new feedback service
-
-Navigate to the newly updated application. If you can't remember the location of the website, do the following steps and get the _StaticSiteS3BucketWebsiteURL_ in _Stack Outputs_:
-
-```
-$ cd $WORKSHOP/wild-rydes
-$ sls info -v
-```
-
-Navigate to the site in your browser and go to the ride request map. In the upper right corner you should see a new free text box. Enter a message in the box and click the _Submit_ button. (Be polite and considerate of your fellow participants)
-
-Finally, you should see your message in the Gitter chatroom associated with this workshop. Click on the badge to join the room. Be sure to look for your message. [![Join the chat at https://gitter.im/ServerlessOpsIO/serverlessops-workshops](https://badges.gitter.im/ServerlessOpsIO/serverlessops-workshops-testing.svg)](https://gitter.im/ServerlessOpsIO/serverlessops-workshops-testing?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-
-
-### 5. Write an AWS Config Rule to alert on open buckets.
+### 4. Write an AWS Config Rule to alert on open buckets.
 
 Create an [AWS Config](https://aws.amazon.com/config/) rule that will monitor and alert on the presence of open S3 buckets.
 
