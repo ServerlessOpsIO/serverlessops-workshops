@@ -12,8 +12,24 @@ We'll work to find and fix these issues.
 **Goals:**
 * Add an API Gateway authorizer
 * Secure and manage an API token.
-* Find and fix a security vulnerability in a third-party code r
-esource
+* Find and fix a security vulnerability in a third-party code resource
+
+## Application Security
+
+### API Gateway Authorizers
+
+
+### Vulnerable Function Dependencies
+
+
+
+### Managing Secrets
+
+#### AWS Systems Manager Param Store
+
+
+#### AWS Secrets Manager
+
 
 ## Instructions
 
@@ -205,64 +221,154 @@ $ curl -H "x-api-key: <API_KEY>" <URL>
 </details>
 
 
-<!-- We can split here if we want to -->
-### 5. Update wild-rydes to use wild-rydes-ride-fleet API key.
-Update wild-rydes to obtain the wild-rydes-ride-fleet API key and an use it when making requests
-
-Secrets management methods
-1) **Deploy Time Environmental Variables:** Pass in the value using an environmental variable during deploy time. *Do not use this method except as a last resort. It's better than nothing but the next options are better.*
-1) **AWS SSM Parameter Store**: Use [AWS Param Store](https://aws.amazon.com/systems-manager/features/#Parameter_Store) to centrally store the value and fetch it from there. There are two methods of using Param Store. One is via a deploy time value lookup by Serverless Framework and the second is having the _SendToGitter_ function lookup the value in Param Store during execution. When choosing between the two, pay attention to the amount of exposure the key will receive based on the method chosen
-1) **AWS Secrets Manager**: Use [AWS Secrets Manager](https://aws.amazon.com/secrets-manager/) to manage the token value. While Secrets Manager and Param Store appear similar, compare the feature set and cost of Secrets Manager against Param Store.
-
-If you're unsure what to do, choose AWS SSM Parameter Store.
+### 5. Securely store API key in SSM Parameter Store
 
 
-<!-- Update wild-rydes to use vulnerable version of requests -->
-### 6. Insecure Application Dependency
-
-The wild-rydes-feedback has an application dependency vulnerability. Click here to see more about the vulnerability. [![Known Vulnerabilities](https://snyk.io/test/github/ServerlessOpsIO/wild-rydes-feedback/badge.svg)](https://snyk.io/test/github/ServerlessOpsIO/wild-rydes-feedback)
-
-Fix the vulnerability by update the library.
+```
+aws ssm put-parameter --name /wild-rydes-ride-fleet/<USER#>/api_key --value <API_KEY> --type SecureString --key-id alias/serverlessops/master
+```
 
 <details>
-<summary><strong>Hint</strong></summary>
+<summary><strong>Output</strong></summary>
 <p>
 
-Update the _requests_ module i
-n _requirements.txt_ from version 2.19.1 to the latest version found here:
-
-* https://pypi.org/project/requests/
+```
+{
+    "Version": 1
+}
+```
 </p>
 </details>
 
+
+<!-- We can split here if we want to -->
+### 6. Update *wild-rydes* to use *wild-rydes-ride-fleet* API key.
+<!-- FIXME: May not be possioble to encrypt variable in an automated way. -->
+Update *wild-rydes* to obtain the *wild-rydes-ride-fleet* API key and an use it when making requests for fleet members. You'll pass the SSM Parameter name, NOT THE PARAMETER VALUE, to the function via an environmental variable. Your function will then fetch the parameter's value. This is different than what we've done before! We want to keep the API key securely encrypted until the function is invoked.
+
+#### Update _serverless.yml_
+Update the *serverless.yml* file.
+
+*serverless.yml*
+```diff
+--- a/serverless.yml
++++ b/serverless.yml
+@@ -11,9 +11,13 @@ custom:
+   region: "${opt:region, 'us-east-2'}"
+   log_level: "${env:LOG_LEVEL, 'INFO'}"
+
++  ssm_encryption_key_arn: "${ssm:/infra/kms/prime/alias/serverlessops/master/Arn}"
++
+   thundraApiKey: "${ssm:/thundra/root/api-key}"
+
+   request_unicorn_url: "${cf:wild-rydes-ride-fleet-${self:custom.stage}.RequestUnicornUrl}"
++  request_unicorn_api_key_ssm_param: "/wild-rydes-ride-fleet/${self:custom.stage}/api_key"
++
+   ride_record_url: "${ssm:/wild-rydes-ride-record/${self:custom.stage}/URL}"
+
+   hostedZoneName: "${ssm:/route53/root/ServerlessOpsDomain}"
+@@ -61,6 +65,21 @@ provider:
+         - "sns:Publish"
+       Resource:
+         - Ref: RidesSnsTopic
++    - Effect: "Allow"
++      Action:
++        - "ssm:GetParameter"
++      Resource:
++        - Fn::Join:
++          - ":"
++          - - "arn:aws:ssm"
++            - Ref: AWS::Region
++            - Ref: AWS::AccountId
++            - "parameter${self:custom.request_unicorn_api_key_ssm_param}"
++    - Effect: "Allow"
++      Action:
++        - "kms:Decrypt"
++      Resource:
++        - "${self:custom.ssm_encryption_key_arn}"
+
+
+ functions:
+@@ -72,6 +91,7 @@ functions:
+     environment:
+       LOG_LEVEL: "${self:custom.log_level}"
+       REQUEST_UNICORN_URL: "${self:custom.request_unicorn_url}"
++      REQUEST_UNICORN_API_KEY_SSM_PARAM: "${self:custom.request_unicorn_api_key_ssm_param}"
+       RIDES_SNS_TOPIC_ARN:
+         Ref: RidesSnsTopic
+     events:
+```
+
+#### Update the function handler
+*handlers/request_ride.py*
+```diff
+--- a/handlers/request_ride.py
++++ b/handlers/request_ride.py
+@@ -24,6 +24,11 @@ _logger.addHandler(ThundraLogHandler())
+
+ REQUEST_UNICORN_URL = os.environ.get('REQUEST_UNICORN_URL')
+
++SSM_CLIENT = boto3.client('ssm')
++REQUEST_UNICORN_API_KEY_SSM_PARAM = os.environ.get('REQUEST_UNICORN_API_KEY_SSM_PARAM')
++REQUEST_UNICORN_API_KEY = SSM_CLIENT.get_parameter(Name=REQUEST_UNICORN_API_KEY_SSM_PARAM, WithDecryption=True)['Parameter']['Value']
++
++
+ RIDES_SNS_TOPIC_ARN = os.environ.get('RIDES_SNS_TOPIC_ARN')
+ SNS_CLIENT = boto3.client('sns')
+
+@@ -56,9 +61,14 @@ def _get_timestamp_from_uuid(u):
+
+
+ @Traceable(trace_args=True, trace_return_value=True)
+-def _get_unicorn(url=REQUEST_UNICORN_URL):
++def _get_unicorn(url=REQUEST_UNICORN_URL, api_key=REQUEST_UNICORN_API_KEY):
+     '''Return a unicorn from the fleet'''
+-    unicorn = requests.get(REQUEST_UNICORN_URL)
++    unicorn = requests.get(
++        REQUEST_UNICORN_URL,
++        headers={
++            'x-api-key': REQUEST_UNICORN_API_KEY
++        }
++    )
+     return unicorn.json()
+
+
+```
+
+
+<!-- Update wild-rydes to use vulnerable version of requests -->
+### 7. Insecure Application Dependency
+
+The wild-rydes service has an application dependency vulnerability. We've been alerted of this issue through [Snyk](https://www.snyk.io) which provides monitoring for application dependency vulnerabilities. Click the link below to be brought to the wild-rydes GitHub repository. (This link brings you to a branch of the repository with the Snyk badge added.)
+
+* https://github.com/ServerlessOpsIO/wild-rydes/tree/workshop-security-02
+
+Now look for and click the [![Known Vulnerabilities](https://snyk.io/test/github/ServerlessOpsIO/wild-rydes/badge.svg?targetFile=requirements.txt)](https://snyk.io/test/github/ServerlessOpsIO/wild-rydes?targetFile=requirements.txt) button to be taken to the vulnerability explanation page. You'll see this issue can leak authentication credentials. (This vulnerability does not affect our current usage though.) Click the *More about this issue* link. The next page explains under the *Remediation* heading that the issue was resolved in release 2.20. Update the requests module in the *requetsts.txt* from version *2.19* to *2.20*.
+
+
+```diff
+--- a/requirements.txt
++++ b/requirements.txt
+@@ -1,4 +1,4 @@
+ boto3
+ cfn_resource
+ thundra
+-requests==2.19
++requests==2.20
+```
 
 ## Q&A
 
 ### 1. Secrets Management
+Q. Our means of passing the API key to the *RequestRide* function is fine except it makes rotating the API key hard. Explain why.
 
+Q. What are some alternative ways of securely passing the API key to *RequestRide* that alleviate the problems with rotating the key value.
+
+<!-- FIXME: This question no longer makes sense since we just use param store. -->
 Q. Which Secrets Management method did you choose and why?
 
-Q. Explain the feature differences between Secrets Manager and Param Store.
+**Q. EXTRA CREDIT:** Perform the API key lookup at function run time instead of at deploy time. Use (ssm-cache-python)[https://github.com/alexcasalboni/ssm-cache-python] for lookups and caching of responses to reduce function invocation time and prevent hitting Parameter Store API limits.
 
-<details>
-<summary><strong>Hint</strong></summary>
-<p>
+### 2. Custom authorizers
 
-Compare the ability to rotate values using each service.
-</p>
-</details>
-
-Q. Explain the price differences between Secrets Manager and Param Store
-<details>
-<summary><strong>Hint</strong></summary>
-<p>
-
-See the respective pricing pages:
-
-* [SSM Param Store](https://aws.amazon.com/systems-manager/pricing/)
-* [Secrets Manager](https://aws.amazon.com/secrets-manager/pricing/)
-<details>
-<summary><strong>Hint</strong></summary>
-<p>
-
-
+Q. **EXTRA CREDIT:** Add API Gateway caching so less function invocations and DynamoDB lookups are made.

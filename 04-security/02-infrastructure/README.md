@@ -4,7 +4,7 @@ Good ideas: https://www.puresec.io/blog/aws-security-best-practices-config-rules
 
 # Serverless Infrastructure Security
 
-<!-- We could also use wild-ryde-data-lake instead for these tasks... A data lake is an awesoem place to have a breach! -->
+<!-- We could also use wild-ryde-ride-data-lake instead for these tasks... A data lake is an awesoem place to have a breach! -->
 
 In this module we'll add a new service on the backend of Wild Rydes to stream ride requests data to an S3 bucket for further data analysis. Additionally, we've updated wild-rydes-ride-record to support ride update and cancellation operations.  However, both our new service and updated service have a variety of cloud infrastructure security issues that require fixing. We'll find and fix these issues typically by fixing AWS IAM issues.
 
@@ -37,23 +37,26 @@ Once infrastructure security issues have been detected and remediated there shou
 ## Instructions
 
 ### 1. Deploy services
+Deploy the services used for this module. You'll deploy an updated *wild-rydes-ride-record* and the new *wild-rydes-ride-data-lake* service.
 
-#### wild-rydes-data-lake
-Deploy the new *wild-rydes-data-lake* service.
+#### wild-rydes-ride-record
+Deploy an updated *wild-rydes-ride-record* service.  The updated service will export the DynamoDB stream ARN to SSM Parameter Store. the *wild-rydes-ride-data-lake* service will subscribe to this stream and write data to the data lake.
 
 ```
-$ cd $WORKSHOP
-$ git clone https://github.com/ServerlessOpsIO/wild-rydes-data-lake.git
-$ cd wild-rydes-data-lake
+$ cd $WORKSHOP/wild-rydes-ride-record
+$ git clone https://github.com/ServerlessOpsIO/wild-rydes-ride-record.git
 $ git checkout -b workshop-security-02
 $ npm install
 $ sls deploy -v
 ```
 
-#### wild-rydes-ride-record
+#### wild-rydes-ride-data-lake
+Deploy the new *wild-rydes-ride-data-lake* service. This service takes ride data and deposits it to S3 for analysis.
+
 ```
-$ cd $WORKSHOP/wild-rydes-ride-record
-$ git clone https://github.com/ServerlessOpsIO/wild-rydes-ride-record.git
+$ cd $WORKSHOP
+$ git clone https://github.com/ServerlessOpsIO/wild-rydes-ride-data-lake.git
+$ cd wild-rydes-ride-data-lake
 $ git checkout -b workshop-security-02
 $ npm install
 $ sls deploy -v
@@ -69,7 +72,7 @@ Serverless Framework, by default, creates a single IAM role for an entire servic
 Use the [serverless-iam-roles-per-function](https://www.npmjs.com/package/serverless-iam-roles-per-function) Serverless Framework plugin to give each function its own individual; role. You can take the existing IAM role statements and apply them to the proper function.
 
 #### S3 bucket access
-The S3 bucket that ride data is deposited to in wild-rydes-data-lake is open to the world and this needs to be fixed. Limit bucket access to:
+The S3 bucket that ride data is deposited to in wild-rydes-ride-data-lake is open to the world and this needs to be fixed. Limit bucket access to:
 
 * The _SendToDataLake_ Lambda function
 
@@ -103,11 +106,11 @@ Create an [AWS Config](https://aws.amazon.com/config/) rule that will monitor an
 
 ### 4. Deploy updated services
 
-#### wild-rydes-data-lake
-Deploy the new *wild-rydes-data-lake* service.
+#### wild-rydes-ride-data-lake
+Deploy the new *wild-rydes-ride-data-lake* service.
 
 ```
-$ cd $WORKSHOP/wild-rydes-data-lake
+$ cd $WORKSHOP/wild-rydes-ride-data-lake
 $ sls deploy -v
 ```
 

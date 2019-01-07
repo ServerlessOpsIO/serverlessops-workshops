@@ -55,7 +55,14 @@ Switched to branch 'master'
 </p>
 </details>
 
-### 2. Deploy Application
+
+### 2. Update ride.html
+<!--
+Have people update ride.html file to point to their own config bucket
+-->
+
+
+### 3. Deploy Application
 
 Deploy the application using Serverless Framework.
 
@@ -141,7 +148,7 @@ S3 Sync: Synced.
 </p>
 </details>
 
-### 3. Use Application
+### 4. Use Application
 
 Navigate to the newly deployed application. In the output of the previous step, look for the _StaticSiteS3BucketWebsiteURL_ in _Stack Outputs_. This is the URL of the newly deployed application.  Navigate to it in a web browser.
 
@@ -149,7 +156,7 @@ Navigate to the newly deployed application. In the output of the previous step, 
 
 Use the application and request a ride.
 
-### 4. Tail application logs
+### 5. Tail application logs
 
 Tail the application logs. Serverless Framework's `logs` command will poll and dump the RequestRide function's logs from CloudWatch to the terminal window.
 
@@ -223,7 +230,7 @@ $ sls logs -f RequestRide -t
      Serverless Version:     1.30.1
 ```
 
-### 5. Invoke function
+### 6. Invoke function
 
 Invoke the ``RequestRide` function without going through the application frontend or API Gateway. The file _tests/events/request-ride-event.json_ is a mock API Gateway event that resembles the data that would be passed by API GAteway to the Lambda function.
 
