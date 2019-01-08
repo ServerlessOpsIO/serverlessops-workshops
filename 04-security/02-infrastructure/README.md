@@ -66,41 +66,88 @@ $ sls deploy -v
 
 This section has a number of security issues to be found and fixed. For now, stick to securing access to AWS resources.
 
-#### Reduced function privileges / role per function
+#### S3 bucket access in *wild-rydes-ride-data-lake*
+The S3 bucket that ride data is deposited to in *wild-rydes-ride-data-lake* is open to the world and this needs to be fixed. Limit access to the bucket while allowing the _WriteRecord_ Lambda function to still write to the bucket.
+
+1) Remove the S3 bucket policy resource
+1) Add an IAM role policy statement that grants the *S3:PutObject* action to the _WriteRecord_ function.
+
+<details>
+<summary><strong>Hint 2</strong></summary>
+<p>
+
+* [S3 Bucket Policy CloudFormation Resources](FIXME)
+* [Serverless Framework iamRoleStatements](FIXME)
+
+</p>
+</details>
+
+
+<details>
+<summary><strong>Answers</strong></summary>
+<p>
+
+```diff
+--- a/serverless.yml
++++ b/serverless.yml
+@@ -24,6 +24,17 @@ provider:
+   cfnRole: "arn:aws:iam::${env:AWS_ACCOUNT}:role/CloudFormationDeployRole"
+   environment:
+     LOG_LEVEL: ${self:custom.log_level}
++  iamRoleStatements:
++    - Effect: "Allow"
++      Action:
++        - "S3:PutObject"
++      Resource:
++        Fn::Join:
++          - '/'
++          - - Fn::GetAtt:
++              - WildRydesDataLakeBucket
++              - Arn
++            - '*'
+   stackTags:
+     x-service: wild-rydes-ride-data-lake
+     x-stack: ${self:service}-${self:provider.stage}
+@@ -48,24 +59,3 @@ resources:
+
+     WildRydesDataLakeBucket:
+       Type: "AWS::S3::Bucket"
+-
+-    WildRydesDataLakeBucketPolicy:
+-      Type: AWS::S3::BucketPolicy
+-      Properties:
+-        Bucket:
+-          Ref: WildRydesDataLakeBucket
+-        PolicyDocument:
+-          Statement:
+-            - Sid: PublicReadGetObject
+-              Effect: Allow
+-              Principal: '*'
+-              Action:
+-                - s3:GetObject
+-              Resource:
+-                Fn::Join:
+-                  - "/"
+-                  - - Fn::GetAtt:
+-                      - WildRydesDataLakeBucket
+-                      - Arn
+-                    - "*"
+```
+</p>
+</details>
+
+
+#### Reduce broad DynamoDB access in *wild-rydes-ride-record*
+Narrow DynamnoDB IAM privileges down to only the DynamoDB table *RideRecordTable*.
+
+
+#### One IAM role per function in *wild-rydes-ride-record*
 Serverless Framework, by default, creates a single IAM role for an entire service. That means every function has the same set of permissions and as a result Lambda functions have unnecessary access to other AWS resources. While we know of no ability to exploit this in our application, it violates a best practice.
 
-Use the [serverless-iam-roles-per-function](https://www.npmjs.com/package/serverless-iam-roles-per-function) Serverless Framework plugin to give each function its own individual; role. You can take the existing IAM role statements and apply them to the proper function.
-
-#### S3 bucket access
-The S3 bucket that ride data is deposited to in wild-rydes-ride-data-lake is open to the world and this needs to be fixed. Limit bucket access to:
-
-* The _SendToDataLake_ Lambda function
-
-<details>
-<summary><strong>Hint</strong></summary>
-<p>
-
-Remove the S3 bucket policy resource and update the _SendToDataLake_ IAM role.
-
-</p>
-</details>
-
-#### Reduced resource access
-
-All the functions in wild-rydes-ride record have more IAM permissions than are needed. Reduce them only to the operations they need in order to function.
-
-<details>
-<summary><strong>Hint</strong></summary>
-<p>
-
-* [SNS IAM Reference](https://docs.aws.amazon.com/IAM/latest/UserGuide/list_amazonsns.html)
-* [S3 IAM Reference](https://docs.aws.amazon.com/IAM/latest/UserGuide/list_amazons3.html)
-
-</p>
-</details>
+Use the [serverless-iam-roles-per-function](https://www.npmjs.com/package/serverless-iam-roles-per-function) Serverless Framework plugin to give each function its own individual role. You can take the existing IAM role statements and apply them to the proper function.
 
 
-### 3. Write an AWS Config Rule to alert on open buckets.
+### 3. Deploy AWS Config Rules to alert on open buckets and * access
 
 Create an [AWS Config](https://aws.amazon.com/config/) rule that will monitor and alert on the presence of open S3 buckets.
 
