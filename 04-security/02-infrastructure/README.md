@@ -4,35 +4,85 @@ Good ideas: https://www.puresec.io/blog/aws-security-best-practices-config-rules
 
 # Serverless Infrastructure Security
 
-<!-- We could also use wild-ryde-ride-data-lake instead for these tasks... A data lake is an awesoem place to have a breach! -->
+In this module we'll find and fix infrastructure security issues. We'll find and fix common mistakes in configuration that many people make. Much of this module will revolve around misconfiguration of IAM permissions.
 
-In this module we'll add a new service on the backend of Wild Rydes to stream ride requests data to an S3 bucket for further data analysis. Additionally, we've updated wild-rydes-ride-record to support ride update and cancellation operations.  However, both our new service and updated service have a variety of cloud infrastructure security issues that require fixing. We'll find and fix these issues typically by fixing AWS IAM issues.
+We're going to deploy a new small service called *wild-rydes-data-lake* which takes ride data and places it into an S3 data lake to be used by analysis tools. We've also added functionality to *wild-rydes-ride-record*. Both of these services have securiuty issues we'll address.
 
 ## Goals and Objectives:
 
 **Objectives:**
-* Understand the cloud infrastructure security concerns of serverless.
+* Understand the basic infrastructure security concerns of serverless
+  * Open S3 buckets
+  * Wide scoping of resources in IAM policies
+  * Wide scoping of IAM actions
 
 **Goals:**
-* Evaluate a new application and fix the cloud infrastructure security issues with it.
+* Properly write an S3 policy so that bucket data is not publicly accessible
+* Remove braod access to multiple AWS resources (eg. all dynamoDB tables)
+* Create Lambda function roles on a per function basis with the limited actions required
+
 
 ## Infrastructure Security
+This lab will primarily deal with AWS access controls. In particular, we will make use of [AWS IAM](https://aws.amazon.com/iam/) to properly secure our application infrastructure. Incorrect or far too broad IAM policies lead to many of the security issues that organizations see. This module will illustrate common mistakes people make and demonstrate best practices. We'll also see an S3 bucket policy used. This is similar to IAM but applies only to S3 buckets
+
 ### Access Controls / AWS IAM
+The AWS IAM service is the service in AWS that controls access to resources and services in AWS.  We've touched on IAM in other workshop modules as we've granted Lambda functions the ability to perform certain actions on other AWS resources. For example, add an item to a DynamoDB table. So far we've shown you mostly best practices. In this workshop we'll explore some best practices by demonstrating the poorer practices people often employ and how to fix them.
 
-This lab will primarily deal with AWS access controls. In particular, we will make use of [AWS IAM](https://aws.amazon.com/iam/) to properly secure our application infrastructure. Incorrect or far too broad IAM policies lead to many of the security issues that organizations see. This module will illustrate common mistakes people make and demonstrate best practices.
+IAM entities can mostly be broken down into users, groups, roles, and policies. We're going to ignore IAM users and groups since they're not relevant to us in this workshop. With our serverless applications we should be most concered with the following.
 
-Terminology:
+* _IAM Policy:_ A collection of IAM permission statements. These statements determine what actions can be performed against what resoruces. A policy may consist of multiple statements. IAM policies can be attached to an IAM role, group, or user. (Best practice is to not attach policies to users.) 
+* _IAM Role:_ An IAM identity that is meant to be assumed by a person (eg. an IAM user) or AWS resource (eg. AWS EC2 instance or Lambda function). IAM roles do not have access keys or passwords. Instead by an identity assuming the role the entity is granted temporary security credentials. For out purposes in this workshop, we configure Lambda functions to assume an IAM Role that gives them permission to access other AWS resources.
 
-* _IAM Policy:_ A collection of IAM permission statements. These are typically attached to an IAM Role, Group, or User. (Best practice is to not attach policies to users.)
-* _IAM Role:_ A collection of IAM policies. We attach IAM Roles to Lambda functions to give them permission to access other AWS resources.
+With the way Serverless Framework handles IAM policy statements, policies, and roles by default; we'll first concern ourselves with individual IAM policy statements. Later we'll configure Serverless Framework to handle IAM roles differently.
 
-IAM Permissions Reference:
+#### Creating an IAM role and policy
 
-* https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_actions-resources-contextkeys.html
+Serverless Framework automatically creates an IAM role per service and configures each function to assume that Lambda role. (That's one IAM role in a *serverless.yml* file that all functions in that file will be configured to assume.) Let's demonstrate how we manage IAM with Serverless Framework through example.
+
+We configure I am policy statements via the `provider.iamRoleStatements` property. For example, see the following.
+
+```yaml
+provider:
+  # NOTE: other provider properties have been removed for clarity.
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:PutItem
+      Resource:
+        Ref: MyDdbTable
+    - Effect: Allow
+      Action:
+        - sqs:SendMessage
+      Resource:
+        Fn::GetAtt:
+          - MySqsDlq
+          - Arn
+
+```
+
+
+
+There are two policy statements defined in that example. One statement grants the ability to put an item into a specific DynamoDB table.  The second allows send an SQS message to an SQS queue. Each policy statement defines an effect, ehich is to allow an action (as opposed to deny), an action (as defined by the IAM API), and an AWS resource ARN (we use CloudFormation functions to get the ARN of different resources in our application stack.)
+
+These statements adhere to a general principle to follow when working with IAM, *grant as a few actions to as a few resources as possible.* Commonly this is refered to as "the principle of least privilege".  Not following that is the cause of many security issues in AWS. People don't follow best practices not just because they're lazy or "bad people", they do so because IAM can be complicated. If you don't know what DyanmoDB IAM permissions a function needs it's tempting to just write "_dynamodb:*_" and if you're not sure how to get the ARN of a resource through Cloudfromation it's tempting to set the resource to "_*_".
+
+The following two links, especially the second one will help you with crafting IAM policies:
+
+* [IAM JSON Policy Reference](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies.html)
+* [Actions, Resources, and Condition Keys for AWS Services](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_actions-resources-contextkeys.html)
+
+While we're here, we've mentioned that Serverless Framework creates a single role that all functions in the service will assume. What if we have functions for not just put, but also get, update, and delete? Every function is going to have those permissions. Even functions that maybe don't have to interact with DynamoDB at all. And what if we have two DynamoDB tables in a service?... You get the picture. We'll use a Serverless Framework plugin called [serverless-iam-roles-per-function](https://www.npmjs.com/package/serverless-iam-roles-per-function) to create multiple functions and allow us to better adhere to the principle of least privilege.
+
+### S3 Bucket Access / S3 Bucket Policies
+
+S3 bucket policies are similar to IAM policies but only applu to S3 buckets. They have their uses such as allowing public access to bucket objects when S3 is used for web hosting or for granting the ability for entities in another AWS account to access a bucket. (There are better ways to solve that.) Unfortunately these often get people into trouble. People create policies that grant access to S3 data by unauthorized people through policy mistakes or simple frusturation. We'll cover one such example and fix it.
+
+<!--  Leave out for now
 
 ### Infrastructure Monitoring / AWS Config
 
 Once infrastructure security issues have been detected and remediated there should be a process put in place to prevent the issue from happening again. We'll use [AWS Config](https://aws.amazon.com/config/) to monitor for and alert on issues.
+-->
 
 ## Instructions
 
@@ -180,7 +230,6 @@ Q. We granted access by the _SendToS3Bucket_ function to the appropriate S3 buck
 1) Create a policy to the bucket that grants access.
 
 Where possible, attempt to use the first option.
-
 </p>
 </details>
 

@@ -1,6 +1,6 @@
 # Serverless Application Security
 
-In this module we plan to add a new feature to Wild Rydes. To do so, we've created a new service called _wild-rydes-feedback_. However, this new service has a variety of application security issues that require fixing.
+In this module we'll find and fix application security issues. These are basic application security issues that you will likely encounter and eventually need to solve.
 
 We'll work to find and fix these issues.
 
@@ -8,30 +8,55 @@ We'll work to find and fix these issues.
 
 **Objectives:**
 * Understand basic security concerns of serverless.
+  * Exposed API endpoints without authorization.
+  * Managing application secrets.
+  * Vulnerable application dependencies.
 
 **Goals:**
-* Add an API Gateway authorizer
-* Secure and manage an API token.
-* Find and fix a security vulnerability in a third-party code resource
+* Add an API Gateway authorizer to secure endpoints
+* Secure and manage an API token with AWS SSM Parameter Store
+* Find and fix a security vulnerability in a third-party code resource with Snyk
 
 ## Application Security
+What we'll cover in this module are basic serverless application security issues. These are not highly sophisticated issues. But they are however common issues and technical requirements of serverless applications. These are low hanging fruit that routinely result in information exposure and other security incidents.
 
-### API Gateway Authorizers
+### Exposed API Endpoints / API Gateway Authorizers
+One common application security issue is publicly exposed APIs that don't require any authorization. This means anyone who can find the endpoint can probe it for data which can result in leaking potentially sensitive information. And it's not uncommon for APIs that are expected to only be consumed internally to not have access controls. However, unlike an AWS EC2 environment where there is a VPC and security groups that can provide network access controls, API Gateway can be restricted to a VPC but it will not be without extra setup. This means, *you might deploy an API on API Gateway intending it for internal use only but it is publicly exposed to the world while lacking adequate protection.*
 
+In Wild Rydes, none of our API endpoints have any form of authentication (*Am I who I say I am?*) and/or authorization (*Am I allowed to access this?*) checks. We're going to focus on the *wild-rydes-ride-fleet*.
 
-### Vulnerable Function Dependencies
+While it is possible to restrict an API Gateway endpoint to a VPC, we're not going to choose that option. Instead we're going to choose to use an API Gateway custom authorizer. A custom authorizer is a Lambda function that when invoked must provide an authentication policy that allows the API endpoint's function to execute.
 
+<!-- FIXME: Insert diagram -->
 
+We've created a simple, **not intended for production usage**, service called *wild-rydes-api-auth*. To make use of this service you will:
 
-### Managing Secrets
+* Create an API key for the *wild-rydes-ride-fleet* service.
+* Configure the *wild-rydes-ride-fleet* *RequestUnicorn* Lambda function to call the authorizer function
+* Update *wild-rydes* to send the API key in the *X-API-Key* header.
 
-#### AWS Systems Manager Param Store
+This is just one way of using API Gateway custom authorizers or securing an API Gateway endpoint in general. Other alternatives are a Custom Authorizer that calls a service like Auth0 or eschewing a custom authorizer for AWS Cognito.
 
+### Secrets Management / Systems Manager (SSM) Param Store, Secrets Manager, & KMS
+The API keys, such as for *wild-rydes-ride-fleet*, passwords, etc. are what we commonly refer to as a "secrets". They are data that we want to control access to because possession of them can grant access to service we want to protect.
 
-#### AWS Secrets Manager
+AWS provides two services that are suitable secrets such as passwords and API keys.  They are Systems Manager (SSM) Parameter Store and Secrets Manager.
 
+AWS SSM Parameter Store is a general purpose key value store and we've used it in previous training modules, mostly for service discovery. It can be used for secrets management too. We can encrypt the value using a KMS key and contole access to the parameter either through controlling access to parameter or access to the KMS key. Best of all, it's free.
+
+Secrets Manager is newer and specifically designed for managing and storing secrets. Encrypting the secret value with a KMS key is not optional. Operations on the secret such as create, fetch, rotate, and delete, are logged via CloudTrail. Also, a secret can also be setup so that it is rotated on a schedule. These are useful features for people with requirements to track access and rotate secrets regularly. Secrets Manager charges a small fee per secret stored and then additional charges based on the number of API calls to the service.
+
+We're going to use SSM Parameter Store over Secrets Manager in this module. This is because the cost difference isn't justified when we lack the need for it's features such as automated secret rotation or secret usage and management logging.
+
+We'll also briefly touch on the KMS service. Many services that support encryption have a default AWS provided KMS key. But, by default all entities (eg. IAM users and roles) can make use of those keys. How secret can something be if everyone has the ability to decrypt it? We've created a KMS key in our account that we are only allowed to encrypt data with by default. We'll grant a Lambda function the ability to use the KMS key to decrypt our API key even though we personally do not have that access. _(Yes, this security is trivial to bypass but with additional layers of security this may prove useful.)_
+
+### Vulnerable Function Dependencies / Snyk
+Your Lambda function's code is more than just the code you wrote. It more than likely uses third party libraries or modules. (Even if just from your runtime's standard library.) Unpatched vulnerabilities in third party code is often an issue. In many organizations, physical and virtual hosts may be regularly patched because of operating system vendor bulletins. But at the application level where many libraries do not originate from formal vendors, vulnerabilities often go unpatched. The best practice of specifying application dependency versions, or "pinning", means dependencies are often not updated. When combined with a desire to not introduce stability issues due to new code (*don't fix what isn't broken*) many developers do not regularly update application dependencies.
+
+To solve this issue, a service like Snyk scans code repositories for the dependencies and compares them against the public security announcements provided by many of the package distribution services for different languages. In this module we'll see a vulnerable Python module discovered by Snyk and remediate the issue through an update.
 
 ## Instructions
+Because of the complexity of many of the steps, unlike other workshop modules, this module will mostly show you the changes to be made. In turn, it will link to documentation and explain why the changes were made the way they were.
 
 ### 1. Deploy services
 
@@ -47,10 +72,24 @@ $ npm install
 $ sls deploy -v
 ```
 
+This service will create an parameter in AWS SSM Parameter Store called */wild-rydes-api-auth/<USER#>/Arn*. We export the authorizer function's ARN so we can get the ARN for *wild-rydes-ride-fleet*.
+
 #### wild-rydes-ride-fleet
+Deploy the new *wild-rydes-ride-fleet* service.
+
 ```
 $ cd $WORKSHOP/wild-rydes-ride-fleet
 $ git clone https://github.com/ServerlessOpsIO/wild-rydes-ride-fleet.git
+$ git checkout -b workshop-security-01
+$ npm install
+$ sls deploy -v
+```
+
+#### wild-rydes
+Deploy the new *wild-rydes* service.
+```
+$ cd $WORKSHOP/wild-rydes
+$ git clone https://github.com/ServerlessOpsIO/wild-rydes.git
 $ git checkout -b workshop-security-01
 $ npm install
 $ sls deploy -v
@@ -242,7 +281,7 @@ aws ssm put-parameter --name /wild-rydes-ride-fleet/<USER#>/api_key --value <API
 
 
 <!-- We can split here if we want to -->
-### 6. Update *wild-rydes* to use *wild-rydes-ride-fleet* API key.
+### 6. Update *wild-rydes* to use the *wild-rydes-ride-fleet* API key.
 <!-- FIXME: May not be possioble to encrypt variable in an automated way. -->
 Update *wild-rydes* to obtain the *wild-rydes-ride-fleet* API key and an use it when making requests for fleet members. You'll pass the SSM Parameter name, NOT THE PARAMETER VALUE, to the function via an environmental variable. Your function will then fetch the parameter's value. This is different than what we've done before! We want to keep the API key securely encrypted until the function is invoked.
 
@@ -337,7 +376,7 @@ Update the *serverless.yml* file.
 
 
 <!-- Update wild-rydes to use vulnerable version of requests -->
-### 7. Insecure Application Dependency
+### 7. Insecure Application Dependency in *wild-rydes*
 
 The wild-rydes service has an application dependency vulnerability. We've been alerted of this issue through [Snyk](https://www.snyk.io) which provides monitoring for application dependency vulnerabilities. Click the link below to be brought to the wild-rydes GitHub repository. (This link brings you to a branch of the repository with the Snyk badge added.)
 
@@ -367,7 +406,7 @@ Q. What are some alternative ways of securely passing the API key to *RequestRid
 <!-- FIXME: This question no longer makes sense since we just use param store. -->
 Q. Which Secrets Management method did you choose and why?
 
-**Q. EXTRA CREDIT:** Perform the API key lookup at function run time instead of at deploy time. Use (ssm-cache-python)[https://github.com/alexcasalboni/ssm-cache-python] for lookups and caching of responses to reduce function invocation time and prevent hitting Parameter Store API limits.
+**Q. EXTRA CREDIT:** Reduce the number of calls to SSM Parameter Store by using [ssm-cache-python](https://github.com/alexcasalboni/ssm-cache-python) to provide value caching and aging. This helps prevent throttling of API requests and reduces function duration on average.
 
 ### 2. Custom authorizers
 
