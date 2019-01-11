@@ -13,6 +13,7 @@ We'll work to find and fix these issues.
   * Vulnerable application dependencies.
 
 **Goals:**
+
 * Add an API Gateway authorizer to secure endpoints
 * Secure and manage an API token with AWS SSM Parameter Store
 * Find and fix a security vulnerability in a third-party code resource with Snyk
@@ -44,7 +45,7 @@ The API keys, such as for *wild-rydes-ride-fleet*, passwords, etc. are what we c
 
 AWS provides two services that are suitable secrets such as passwords and API keys.  They are Systems Manager (SSM) Parameter Store and Secrets Manager.
 
-AWS SSM Parameter Store is a general purpose key value store and we've used it in previous training modules, mostly for service discovery. It can be used for secrets management too. We can encrypt the value using a KMS key and contole access to the parameter either through controlling access to parameter or access to the KMS key. Best of all, it's free.
+AWS SSM Parameter Store is a general purpose key value store and we've used it in previous training modules, mostly for service discovery. It can be used for secrets management too. We can encrypt the value using a KMS key and control access to the parameter either through controlling access to parameter or access to the KMS key. Best of all, it's free.
 
 Secrets Manager is newer and specifically designed for managing and storing secrets. Encrypting the secret value with a KMS key is not optional. Operations on the secret such as create, fetch, rotate, and delete, are logged via CloudTrail. Also, a secret can also be setup so that it is rotated on a schedule. These are useful features for people with requirements to track access and rotate secrets regularly. Secrets Manager charges a small fee per secret stored and then additional charges based on the number of API calls to the service.
 
@@ -409,16 +410,24 @@ Now look for and click the [![Known Vulnerabilities](https://snyk.io/test/github
 
 ## Q&A
 
-### 1. Secrets Management
 Q. Our means of passing the API key to the *RequestRide* function is fine except it makes rotating the API key hard. Explain why.
 
-Q. What are some alternative ways of securely passing the API key to *RequestRide* that alleviate the problems with rotating the key value.
+<details>
+<summary><strong>Hint</strong></summary>
+<p>Notice our function gets the paramater value outside of the function handler.</p>
+</details>
 
-<!-- FIXME: This question no longer makes sense since we just use param store. -->
-Q. Which Secrets Management method did you choose and why?
+<details>
+<summary><strong>Answer</strong></summary>
+<p>
+By getting the value outside of the handler, the value is evaluated only on the first invocation instance. If the API key changes then you will need to redeploy the function to obtain the new key. In the meantime, the function will fail because it is using the old API key.
+</p>
+</details>
+
+Q. What are the drawbacks of doing the parameter lookup in the Lambda function's handler?
+
+A. This isn't a very fair question because the answers aren't well documented. Parameter Store will throttle API requests at a certain point which can result in your function failing. Additionally, expect a Parameter Store lookup to add about 20-30ms to the duration of every call.
 
 **Q. EXTRA CREDIT:** Reduce the number of calls to SSM Parameter Store by using [ssm-cache-python](https://github.com/alexcasalboni/ssm-cache-python) to provide value caching and aging. This helps prevent throttling of API requests and reduces function duration on average.
 
-### 2. Custom authorizers
-
-Q. **EXTRA CREDIT:** Add API Gateway caching so less function invocations and DynamoDB lookups are made.
+**Q. EXTRA CREDIT:** Add API Gateway caching so less function invocations and DynamoDB lookups are made.
