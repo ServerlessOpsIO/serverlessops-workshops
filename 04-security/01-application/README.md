@@ -90,7 +90,7 @@ $ sls deploy -v
 ```
 
 #### wild-rydes
-Deploy the new *wild-rydes* service.
+Deploy the updated *wild-rydes* service.
 ```
 $ cd $WORKSHOP/wild-rydes
 $ git clone https://github.com/ServerlessOpsIO/wild-rydes.git
@@ -102,7 +102,7 @@ $ sls deploy -v
 ### 2. Update wild-rydes-ride-fleet
 Update _wild-rydes-ride-fleet_ to to call the *wild-rydes-api-auth* *Authorizer* function when invoking the _RequestUnicorn_ Lambda function. To do this you’ll update the _RequestUnicorn_ function’s HTTP event.
 
-You’ll do this by adding an _authorizer_ property to the HTTP trigger event that defines a function ARN and header to pull the API key from. You can just make the change below.
+You’ll add an _authorizer_ property to the HTTP trigger event. The new property will define the function authorizer's ARN and the header to pull the API key from. You can just make the change below.
 
 *handlers/get_unicorn.py*
 ```diff
@@ -141,6 +141,8 @@ $ sls info
 <details>
 <summary><strong>Output</strong></summary>
 <p>
+See the example output below. The value you’re looking for in this example output is `https://kbnrvuvmbl.execute-api.us-east-2.amazonaws.com/user0/key`. Make sure to use the value from your own output from `sls info`.
+
 
 ```
 Service Information
@@ -171,7 +173,6 @@ layers:
   None
 ```
 
-The value you’re looking for is `https://kbnrvuvmbl.execute-api.us-east-2.amazonaws.com/<USER#>/key`
 </p>
 </details>
 
@@ -195,7 +196,10 @@ curl -X POST --data '{"Id":"<USER#>-wild-rydes-ride-fleet"}' <URL>
 </p>
 </details>
 
+Make note of the API key you received back. You will need that in steps 4 and 5.
+
 ### 4. Request a member of fleet using `curl`
+
 Attempt to use curl to request a ride.
 
 Start by getting an HTTP endpoint for requesting a ride from _wild-rydes-ride-fleet_. Do this by running `sls info` in the _wild-rydes-ride-fleet_ directory. There will only be one endpoint in the _endpoints_ section of the output.
@@ -263,8 +267,11 @@ $ curl -H "x-api-key: <API_KEY>" <URL>
 </p>
 </details>
 
-
 ### 5. Securely store API key in SSM Parameter Store
+
+For other services to make use of this API key, store it in SSM Parameter store. Name the key `/wild-rydes-ride-fleet/<USER#>/api_key` where *USER#* is your user number / stage. For example, *user0*. We also want to encrypt the key's value. To do that we'll use a key called *alias/serverlessops/master* which has been created for use in this workshop.
+
+Run the command below, replacing *USER#* and *API_KEY* with your own values.
 
 
 ```
@@ -283,14 +290,13 @@ aws ssm put-parameter --name /wild-rydes-ride-fleet/<USER#>/api_key --value <API
 </p>
 </details>
 
-
 <!-- We can split here if we want to -->
-### 6. Update *wild-rydes* to use the *wild-rydes-ride-fleet* API key.
-<!-- FIXME: May not be possioble to encrypt variable in an automated way. -->
-Update *wild-rydes* to obtain the *wild-rydes-ride-fleet* API key and an use it when making requests for fleet members. You'll pass the SSM Parameter name, NOT THE PARAMETER VALUE, to the function via an environmental variable. Your function will then fetch the parameter's value. This is different than what we've done before! We want to keep the API key securely encrypted until the function is invoked.
 
-#### Update _serverless.yml_
-Update the *serverless.yml* file.
+### 6. Update *wild-rydes* to use the *wild-rydes-ride-fleet* API key.
+Update *wild-rydes* to obtain the *wild-rydes-ride-fleet* API key and an use it when making requests for fleet members. You'll pass the SSM Parameter Store parameter name, NOT THE PARAMETER VALUE, to the function via an environmental variable. Your function will then fetch the parameter's value from Paramater Store. This is different than what we've done before! In other modules we've Serverless Framework lookup the value at deploy time. But here we want to keep the API key securely encrypted until the function is invoked. For that reason we're going to have the *RequestRide* Lambda function do the parameter value lookup instead of Serverless Framework.
+
+#### Update *wild-rydes* _serverless.yml_
+Update the *serverless.yml* file. Below if a diff illustrating the changes to be made.
 
 *serverless.yml*
 ```diff
@@ -342,7 +348,10 @@ Update the *serverless.yml* file.
      events:
 ```
 
-#### Update the function handler
+#### Update the *RequestRide* function handler
+
+Update the *RequestRide* function to obtain the API key from SSM Parameter Store and send it in the *x-api-key* header when making the web request in *_get_unicorn()*. Below if a diff illustrating the changes to be made.
+
 *handlers/request_ride.py*
 ```diff
 --- a/handlers/request_ride.py
@@ -378,8 +387,6 @@ Update the *serverless.yml* file.
 
 ```
 
-
-<!-- Update wild-rydes to use vulnerable version of requests -->
 ### 7. Insecure Application Dependency in *wild-rydes*
 
 The wild-rydes service has an application dependency vulnerability. We've been alerted of this issue through [Snyk](https://www.snyk.io) which provides monitoring for application dependency vulnerabilities. Click the link below to be brought to the wild-rydes GitHub repository. (This link brings you to a branch of the repository with the Snyk badge added.)
