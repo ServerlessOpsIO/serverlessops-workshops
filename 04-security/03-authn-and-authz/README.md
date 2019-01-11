@@ -1,11 +1,11 @@
 # Serverless API Access
 
-Currently our applications endpoints are unauthenticated. That means anyone that is able to figure out our API endpoints can send request to them directly.
+Currently the Wild Rydes application has no user management and authentication. That means anyone that is able to figure out our API endpoints can send request to the *RequestRide* endpoint directly. While we secured *wld-rydes-ride-record* in module one using an API key and a custom authorizer function, In this module we'll walk through how to manage user authentication and authorization using AWS Cognito.
 
 ## Goals and Objectives:
 
 **Objectives:**
-* Understand how to secure API endpoints.
+* Understand how to handle users and their authentication.
 
 **Goals:**
 * Use AWS Cognito to secure Wild Rydes and its service endpoints
@@ -17,7 +17,9 @@ Our API gateway endpoints are exposed to the internet with now firewall or acces
 
 ## Instructions
 
-### 1. Update wild-rydes frontend
+### 1. Create Cognito user pools
+
+### 2. Update wild-rydes frontend
 In this step we'll create Cognito resources for managing application users and deploy an updated site frontend with a user signup workflow.
 
 Checkout the the _api-access_ branch of the wild-rydes Github repository.
@@ -66,16 +68,6 @@ $ npm install
 $ sls deploy -v
 ```
 
-### 2. Sign and register for Wild Rydes
-Navigate to the newly updated application. If you can't remember the location of the website, do the following steps and get the _StaticSiteS3BucketWebsiteURL_ in _Stack Outputs_:
-
-```
-$ cd $WORKSHOP/wild-rydes
-$ sls info -v
-```
-
-Click the _Giddy Up_ button which will take you to the user registration page. Signup for the service with a valid email and provide a password. You'll receive an email to confirm your account. Once you confirm, login to the service.
-
 ### 3. Update wild-rydes backend
 Update API Gateway to check Cognito credentials.
 
@@ -116,54 +108,22 @@ Now deploy service.
 $ sls deploy -v
 ```
 
-### 4. Update wild-rydes-ride-fleet
-Update API Gateway to require AWS Cognito.
+### 4. Sign and register for Wild Rydes
+Navigate to the newly updated application. If you can't remember the location of the website, do the following steps and get the _StaticSiteS3BucketWebsiteURL_ in _Stack Outputs_:
 
-<details>
-<summary><strong>Hint</strong></summary>
-<p>
+```
+$ cd $WORKSHOP/wild-rydes
+$ sls info -v
+```
 
-Show Cognito / API Gateway docs
-</p>
-</details>
-<details>
-<summary><strong>Answer</strong></summary>
-<p>
+Click the _Giddy Up_ button which will take you to the user registration page. Signup for the service with a valid email and provide a password. You'll receive an email to confirm your account. Once you confirm, login to the service.
 
-Show serverless.yml
-</p>
-</details>
-
-### 5. Update wild-rydes-feedback.
-Update API Gateway to require AWS Cognito.
-
-<details>
-<summary><strong>Hint</strong></summary>
-<p>
-
-Show Cognito / API Gateway docs
-</p>
-</details>
-<details>
-<summary><strong>Answer</strong></summary>
-<p>
-
-Show serverless.yml
-</p>
-</details>
-
-
-### 6. Request a ride from site
+### 5. Request a ride from site
 Navigate to site and successfully request a ride.
 
-### 7. Request a ride using `curl`
-Attempt to use curl to request a ride.
 
-```
-$ curl ...
-```
+Disable user and request a ride.
 
-You should receive an access denied error.
 
 ## Q&A
 
