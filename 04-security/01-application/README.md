@@ -27,7 +27,9 @@ In Wild Rydes, none of our API endpoints have any form of authentication (*Am I 
 
 While it is possible to restrict an API Gateway endpoint to a VPC, we're not going to choose that option. Instead we're going to choose to use an API Gateway custom authorizer. A custom authorizer is a Lambda function that when invoked must provide an authentication policy that allows the API endpoint's function to execute.
 
-<!-- FIXME: Insert diagram -->
+You'll build out this system workflow in this module.
+
+![Wild Rydes API Key Authorizer](/Users/tom/Source/serverlessops/serverlessops-workshops/images/wild-rydes-api-auth-and-ride-fleet.png)
 
 We've created a simple, **not intended for production usage**, service called *wild-rydes-api-auth*. To make use of this service you will:
 
@@ -47,6 +49,8 @@ AWS SSM Parameter Store is a general purpose key value store and we've used it i
 Secrets Manager is newer and specifically designed for managing and storing secrets. Encrypting the secret value with a KMS key is not optional. Operations on the secret such as create, fetch, rotate, and delete, are logged via CloudTrail. Also, a secret can also be setup so that it is rotated on a schedule. These are useful features for people with requirements to track access and rotate secrets regularly. Secrets Manager charges a small fee per secret stored and then additional charges based on the number of API calls to the service.
 
 We're going to use SSM Parameter Store over Secrets Manager in this module. This is because the cost difference isn't justified when we lack the need for it's features such as automated secret rotation or secret usage and management logging.
+
+![SSM Param Store](/Users/tom/Source/serverlessops/serverlessops-workshops/images/wild-rides-ssm-param-store.png)
 
 We'll also briefly touch on the KMS service. Many services that support encryption have a default AWS provided KMS key. But, by default all entities (eg. IAM users and roles) can make use of those keys. How secret can something be if everyone has the ability to decrypt it? We've created a KMS key in our account that we are only allowed to encrypt data with by default. We'll grant a Lambda function the ability to use the KMS key to decrypt our API key even though we personally do not have that access. _(Yes, this security is trivial to bypass but with additional layers of security this may prove useful.)_
 

@@ -87,15 +87,15 @@ In this module once we've remiedated our bucket access issue we'll deploy Config
 
 These are the two services we will be working with in this module.
 
-<!-- FIXME: Instert diagram -->
+### ![Wild Rydes Data Lake](/Users/tom/Source/serverlessops/serverlessops-workshops/images/wild-rydes-ride-record-and-data-lake.png)
 
-### wild-rydes-ride data-lake
+### wild-rydes-ride-data-lake
 
 This service takes ride data and deposits it to S3 for analysis.
 
 ### wild-rydes-ride-record
 
-The updated service for this module will export the DynamoDB stream ARN to SSM Parameter Store. A DynamoDB stream is an event stream where all table data events are recorded on. The *wild-rydes-ride-data-lake* service will subscribe to this stream and write data from it to the data lake.
+The *wild-rydes-ride-data-lake* service will subscribe to the DynamoDB stream from *wild-rydes-ride-recrd* and write data from it to the data lake. (We've updated *wild-rydes-ride-record* tom export the stream's ARN to SSM Parameter Store so *wild-rydes-ride-data-lake* can suvscribe to it.)
 
 ## Instructions
 
