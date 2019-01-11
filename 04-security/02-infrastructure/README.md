@@ -77,20 +77,33 @@ While we're here, we've mentioned that Serverless Framework creates a single rol
 
 S3 bucket policies are similar to IAM policies but only applu to S3 buckets. They have their uses such as allowing public access to bucket objects when S3 is used for web hosting or for granting the ability for entities in another AWS account to access a bucket. (There are better ways to solve that.) Unfortunately these often get people into trouble. People create policies that grant access to S3 data by unauthorized people through policy mistakes or simple frusturation. We'll cover one such example and fix it.
 
-<!--  Leave out for now
-
 ### Infrastructure Monitoring / AWS Config
 
-Once infrastructure security issues have been detected and remediated there should be a process put in place to prevent the issue from happening again. We'll use [AWS Config](https://aws.amazon.com/config/) to monitor for and alert on issues.
--->
+Once infrastructure security issues have been detected and remediated there should be a process put in place to prevent the issue from happening again. We'll use [AWS Config](https://aws.amazon.com/config/) to monitor for and alert on issues. The AWS Config service let's you monitor your AWS resources for compliance against AWS pre-defined or your own custom rules.
+
+In this module once we've remiedated our bucket access issue we'll deploy Config rules to monitor for public read and public write access using AWS pre-defined rules.
+
+## Tech Stack
+
+These are the two services we will be working with in this module.
+
+<!-- FIXME: Instert diagram -->
+
+### wild-rydes-ride data-lake
+
+This service takes ride data and deposits it to S3 for analysis.
+
+### wild-rydes-ride-record
+
+The updated service for this module will export the DynamoDB stream ARN to SSM Parameter Store. A DynamoDB stream is an event stream where all table data events are recorded on. The *wild-rydes-ride-data-lake* service will subscribe to this stream and write data from it to the data lake.
 
 ## Instructions
 
 ### 1. Deploy services
-Deploy the services used for this module. You'll deploy an updated *wild-rydes-ride-record* and the new *wild-rydes-ride-data-lake* service.
+Deploy the services used for this module. You'll deploy an updated *wild-rydes-ride-record* and the new *wild-rydes-ride-ride-data-lake* service.
 
 #### wild-rydes-ride-record
-Deploy an updated *wild-rydes-ride-record* service.  The updated service will export the DynamoDB stream ARN to SSM Parameter Store. the *wild-rydes-ride-data-lake* service will subscribe to this stream and write data to the data lake.
+Deploy an updated *wild-rydes-ride-record* service.
 
 ```
 $ cd $WORKSHOP/wild-rydes-ride-record
@@ -101,7 +114,7 @@ $ sls deploy -v
 ```
 
 #### wild-rydes-ride-data-lake
-Deploy the new *wild-rydes-ride-data-lake* service. This service takes ride data and deposits it to S3 for analysis.
+Deploy the new *wild-rydes-ride-data-lake* service.
 
 ```
 $ cd $WORKSHOP
@@ -114,17 +127,59 @@ $ sls deploy -v
 
 ### 2. Review and fix security issues
 
-This section has a number of security issues to be found and fixed. For now, stick to securing access to AWS resources.
+Find and fix the following security issues.
 
 #### S3 bucket access in *wild-rydes-ride-data-lake*
-The S3 bucket that ride data is deposited to in *wild-rydes-ride-data-lake* is open to the world and this needs to be fixed. Limit access to the bucket while allowing the _WriteRecord_ Lambda function to still write to the bucket.
+The S3 bucket that ride data is deposited to in *wild-rydes-ride-data-lake* is open to the world and this needs to be fixed. We don't want anyone who manages to figure out our AWS bucket name to have access to all our customer ride data.
+
+Limit access to the bucket while allowing the _WriteRecord_ Lambda function to still write to the bucket.
+
+This is the current S3 bucket policy. It allows anyone to perform any S3 API operation on the S3 bucket and objects within the bucket. _(TIP: When you write policies for S3 buckets keep in mind that some S3 operations are performed on buckets and some are performed on bucket objects. You'll need to specify those as seperate resources as we did below.)_
+
+*serverless.yml:*
+
+```yaml
+    WildRydesDataLakeBucketPolicy:
+      Type: AWS::S3::BucketPolicy
+      Properties:
+        Bucket:
+          Ref: WildRydesDataLakeBucket
+        PolicyDocument:
+          Statement:
+            - Sid: PublicReadGetObject
+              # Policy allows actions to be performed
+              Effect: Allow
+              # Policy applies to any entity
+              Principal: '*'
+              # Policy covers all S3 API operations
+              Action:
+                - s3:*
+              # Policy covers the following AWS resources
+              Resource:
+                # Data lake S3 bucket objects
+                - Fn::Join:
+                  - "/"
+                  - - Fn::GetAtt:
+                      - WildRydesDataLakeBucket
+                      - Arn
+                    - "*"
+                # Data lake S3 bucket
+                - Fn::GetAtt:
+                  - WildRydesDataLakeBucket
+                  - Arn
+```
+
+In this step of the module you will do the following:
 
 1) Remove the S3 bucket policy resource
 1) Add an IAM role policy statement that grants the *S3:PutObject* action to the _WriteRecord_ function.
 
+We're removing the bucket policy because it's easier to manage bucket access by granting access to the role that an AWS resource assumes (eg. Lambda function role) then attempting to centrally manage all access in a single policy. Once you've done that, add a `provider.iamRoleStatements` property that grants the _S3:PutObject_ action on objects in the data lake S3 bucket. This is the only API access the _WriteRecord_ Lambda function requires. _(If we start to add functionality at a later point we will grant more actions on an as needed basis.)_
+
 <details>
-<summary><strong>Hint 2</strong></summary>
+<summary><strong>Hint 1</strong></summary>
 <p>
+
 
 * [S3 Bucket Policy CloudFormation Resources](FIXME)
 * [Serverless Framework iamRoleStatements](FIXME)
@@ -158,11 +213,10 @@ The S3 bucket that ride data is deposited to in *wild-rydes-ride-data-lake* is o
    stackTags:
      x-service: wild-rydes-ride-data-lake
      x-stack: ${self:service}-${self:provider.stage}
-@@ -48,24 +59,3 @@ resources:
-
+@@ -49,26 +60,3 @@ resources:
      WildRydesDataLakeBucket:
        Type: "AWS::S3::Bucket"
--
+
 -    WildRydesDataLakeBucketPolicy:
 -      Type: AWS::S3::BucketPolicy
 -      Properties:
@@ -174,37 +228,252 @@ The S3 bucket that ride data is deposited to in *wild-rydes-ride-data-lake* is o
 -              Effect: Allow
 -              Principal: '*'
 -              Action:
--                - s3:GetObject
+-                - s3:*
 -              Resource:
--                Fn::Join:
+-                - Fn::Join:
 -                  - "/"
 -                  - - Fn::GetAtt:
 -                      - WildRydesDataLakeBucket
 -                      - Arn
 -                    - "*"
+-                - Fn::GetAtt:
+-                  - WildRydesDataLakeBucket
+-                  - Arn
+-
 ```
 </p>
 </details>
 
 
-#### Reduce broad DynamoDB access in *wild-rydes-ride-record*
-Narrow DynamnoDB IAM privileges down to only the DynamoDB table *RideRecordTable*.
+#### DynamoDB access in *wild-rydes-ride-record*
+The IAM role in *wild-rydes-ride-record* grants item put, get, update, and delete operations to all DynamoDB tables.
+
+*serverless.yml:*
+
+```yaml
+provider:
+  iamRoleStatements:
+    # Policy allows
+    - Effect: Allow
+      # Item Put, Get, Update, and Delete
+      Action:
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+        - dynamodb:GetItem
+      # On items in any DynamoDB table in our account
+      Resource: '*'
+```
+
+Update the role so it only grants them to the *RideRecordTable* DynamoDB resource from this service. You can do this by updating the `provider.iamRoleStatements.Resource` property. You want to replace the '*' value with the ARN of the *RideRecordTable* DynamoDB table.
+
+<details>
+<summary><strong>Hint 1</strong></summary>
+<p>
+Use the *Fn::GetAtt* CloudFormation function to get the ARN of *RideRecordTable*. See the following documentation:
+
+* [AWS::DynamoDB::Table - Fn::GetAtt](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html#w2ab1c21c10c99c14c15b4)
+* [Fn::GetAtt](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/intrinsic-function-reference-getatt.html)
+  </p>
+  </details>
+
+<details>
+<summary><strong>Answer</strong></summary>
+<p>
+
+```diff
+--- a/serverless.yml
++++ b/serverless.yml
+@@ -38,7 +38,10 @@ provider:
+         - dynamodb:UpdateItem
+         - dynamodb:DeleteItem
+         - dynamodb:GetItem
+-      Resource: '*'
++      Resource:
++        Fn::GetAtt:
++          - RideRecordTable
++          - Arn
+     - Effect: Allow
+       Action:
+         - sqs:SendMessage
+```
+</p>
+</details>
+
 
 
 #### One IAM role per function in *wild-rydes-ride-record*
-Serverless Framework, by default, creates a single IAM role for an entire service. That means every function has the same set of permissions and as a result Lambda functions have unnecessary access to other AWS resources. While we know of no ability to exploit this in our application, it violates a best practice.
+Serverless Framework, by default, creates a single IAM role for an entire service. That means every function has the same set of permissions and as a result Lambda functions may have unnecessary access to other AWS resources. While we know of no ability to exploit this in our application, it violates the best practice of following the principle of least access.
 
-Use the [serverless-iam-roles-per-function](https://www.npmjs.com/package/serverless-iam-roles-per-function) Serverless Framework plugin to give each function its own individual role. You can take the existing IAM role statements and apply them to the proper function.
+The [serverless-iam-roles-per-function](https://www.npmjs.com/package/serverless-iam-roles-per-function) Serverless Framework plugin will alter the default behavior and create an IAM role per Lambda function in a service. Using this plugin we can narrow the scope of permissions for each Lambda function. Start by installing the plugin:
 
+```
+$ sls plugin install -n serverless-iam-roles-per-function
+```
 
-### 3. Deploy AWS Config Rules to alert on open buckets and * access
+<details>
+<summary><strong>Output</strong></summary>
+<p>
+Serverless: Installing plugin "serverless-iam-roles-per-function@latest" (this might take a few seconds...)
+Serverless: Successfully installed "serverless-iam-roles-per-function@latest"
+</p>
+</details>
+With the plugin installed start updating the *serverless.yml* file so each Lambda function has its own IAM role with only the priveleges it needs in order to function. The process involves removing the `provider.iamRoleStatements` property and creating `iamRoleStatement` properties for each Lambda function. (eg. `functions.PutRideRecordHttp.iamRoleStatement`)
 
-Create an [AWS Config](https://aws.amazon.com/config/) rule that will monitor and alert on the presence of open S3 buckets.
+Each function should have a role statement or statements that grants only the access the functions needs in order to function. For example, the *PutRideRecordSns* Lambda function only needs to be able to perform *dynamodb:PutItem* on the *RideRecordTable* DynamoDB table and *sqs:SendMessage* on the *PutRideRecordSnsDlq* deadletter SQS queue.
 
-### 4. Deploy updated services
+* [serverless-iam-roles-per-function documentation](https://github.com/functionalone/serverless-iam-roles-per-function/blob/master/README.md)
+
+<details>
+<summary><strong>Hint 1</strong></summary>
+<p>
+
+* PutRideRecordSns
+    * Allow *dynamodb:PutItem* on the *RideRecordTable* DynamoDB table
+    * Allow *sqs:SendMessage* on the *PutRideRecordSnsDlq* deadletter SQS queue
+* PutRideRecordHttp
+    * Allow *dynamodb:PutItem* on the *RideRecordTable* DynamoDB table
+* UpdateRideRecord
+    * Allow *dynamodb:UpdateItem* on the *RideRecordTable* DynamoDB table
+* DeleteRideRecord
+    * Allow *dynamodb:DeleteItem* on the *RideRecordTable* DynamoDB table
+* GetRideRecord
+    * Allow *dynamodb:GetItem* on the *RideRecordTable* DynamoDB table
+      </p>
+      </details>
+
+<details>
+<summary><strong>Answer</strong></summary>
+<p>
+
+```diff
+--- a/serverless.yml
++++ b/serverless.yml
+@@ -4,6 +4,7 @@ service: wild-rydes-ride-record
+ plugins:
+   - serverless-python-requirements
+   - serverless-plugin-lambda-dead-letter
++  - serverless-iam-roles-per-function
+
+ custom:
+   stage: "${opt:stage, env:SLS_STAGE, 'dev'}"
+@@ -31,24 +32,6 @@ provider:
+   stackTags:
+     x-service: wild-rydes-ride-record
+     x-stack: ${self:service}-${self:provider.stage}
+-  iamRoleStatements:
+-    - Effect: Allow
+-      Action:
+-        - dynamodb:PutItem
+-        - dynamodb:UpdateItem
+-        - dynamodb:DeleteItem
+-        - dynamodb:GetItem
+-      Resource:
+-        Fn::GetAtt:
+-          - RideRecordTable
+-          - Arn
+-    - Effect: Allow
+-      Action:
+-        - sqs:SendMessage
+-      Resource:
+-        Fn::GetAtt:
+-          - PutRideRecordSnsDlq
+-          - Arn
+ functions:
+   PutRideRecordHttp:
+@@ -56,6 +39,14 @@ functions:
+     description: "Create Ride Record In Table via API Gateway event"
+     memorySize: 128
+     timeout: 29
++    iamRoleStatements:
++      - Effect: Allow
++        Action:
++          - dynamodb:PutItem
++        Resource:
++          Fn::GetAtt:
++            - RideRecordTable
++            - Arn
+     environment:
+       DDB_TABLE_NAME:
+         Ref: RideRecordTable
+@@ -69,6 +60,21 @@ functions:
+     description: "Create Ride Record In Table via SNS event"
+     memorySize: 128
+     timeout: 29
++    iamRoleStatements:
++      - Effect: Allow
++        Action:
++          - dynamodb:PutItem
++        Resource:
++          Fn::GetAtt:
++            - RideRecordTable
++            - Arn
++      - Effect: Allow
++        Action:
++          - sqs:SendMessage
++        Resource:
++          Fn::GetAtt:
++            - PutRideRecordSnsDlq
++            - Arn
+     environment:
+       DDB_TABLE_NAME:
+         Ref: RideRecordTable
+@@ -83,6 +89,14 @@ functions:
+     description: "Update Ride Record In Table"
+     memorySize: 128
+     timeout: 29
++    iamRoleStatements:
++      - Effect: Allow
++        Action:
++          - dynamodb:UpdateItem
++        Resource:
++          Fn::GetAtt:
++            - RideRecordTable
++            - Arn
+     environment:
+       DDB_TABLE_NAME:
+         Ref: RideRecordTable
+@@ -96,6 +110,14 @@ functions:
+     description: "Delete Ride Record In Table"
+     memorySize: 128
+     timeout: 29
++    iamRoleStatements:
++      - Effect: Allow
++        Action:
++          - dynamodb:DeleteItem
++        Resource:
++          Fn::GetAtt:
++            - RideRecordTable
++            - Arn
+     environment:
+       DDB_TABLE_NAME:
+         Ref: RideRecordTable
+@@ -109,6 +131,14 @@ functions:
+     description: "Get Ride Record In Table"
+     memorySize: 128
+     timeout: 29
++    iamRoleStatements:
++      - Effect: Allow
++        Action:
++          - dynamodb:GetItem
++        Resource:
++          Fn::GetAtt:
++            - RideRecordTable
++            - Arn
+     environment:
+       DDB_TABLE_NAME:
+         Ref: RideRecordTable
+```
+</p>
+</details>
+
+### 3. Deploy updated services
+
+Deploy the newly updated services with your fixes.
 
 #### wild-rydes-ride-data-lake
-Deploy the new *wild-rydes-ride-data-lake* service.
+
+Deploy the updated *wild-rydes-ride-data-lake* service.
 
 ```
 $ cd $WORKSHOP/wild-rydes-ride-data-lake
@@ -212,10 +481,139 @@ $ sls deploy -v
 ```
 
 #### wild-rydes-ride-record
+
+Deploy the updated *wild-rydes-ride-record*
+
 ```
 $ cd $WORKSHOP/wild-rydes-ride-record
 $ sls deploy -v
 ```
+
+
+
+### 4. Add AWS Config Rules to alert on open buckets and * access in *wild-rydes-data-lake*
+
+Create an [AWS Config](https://aws.amazon.com/config/) rule that will monitor and alert on the presence of open S3 buckets. It isn't enough that we fix this problem. We should also proactively prevent it from happening again. In this step, add AWS Config rules to detect open read and write permissions on the *WildRydesDataLakeBucket* S3 bucket.
+
+_NOTE: We would never create AWS Config rules like this, on a per service basis, because it would become amazingly expensive. Each AWS Config rule, depending on the total number of Config rules in the account, costs between $1.20 and $2.40. You would more typically have a single deployable service with all your rules and those rules would check multiple AWS resources, not just the resources in a single service._
+
+You'll need to refer to the following documentation to complete this step.
+
+- [Cloudfromation AWS::Config::ConfigRule](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-config-configrule.html)
+- [s3-bucket-public-read-prohibited config rule](https://docs.aws.amazon.com/config/latest/developerguide/s3-bucket-public-read-prohibited.html)
+- [s3-bucket-public-write-prohibited config rule](https://docs.aws.amazon.com/config/latest/developerguide/s3-bucket-public-write-prohibited.html)
+
+
+
+Add two AWS Config rules to *serverless.yml*, one to check for open read access and one to check for open write access. The details listed before will be needed to write these CloudFormation for these rules.
+
+1) S3 public read prohibited:
+
+ * CloudFormation resource name: *S3PublicReadProhibitedConfigRule* 
+ * Config rule name: *S3PublicReadProhibitedConfigRule-${self:provider.stage}*
+    * Tacking the stage on allows for multiple deployments of this rule.
+ * Scope
+    * Resource types: *AWS::S3::Bucket*
+    * Resource ID: S3 bucket name from *WildRydesDataLakeBucket*. (Use CloudFormation *Ref* function)
+ * Rule source
+    * Owner: *AWS*
+    * Identifier: *S3_BUCKET_PUBLIC_READ_PROHIBITED*
+
+2) S3 public write prohibited:
+
+- CloudFormation resource name: *S3PublicWriteProhibitedConfigRule* 
+
+- Config rule name: S3PublicWriteProhibitedConfigRule-${self:provider.stage}*
+  - Tacking the stage on allows for multiple deployments of this rule.
+- Scope
+  - Resource types: *AWS::S3::Bucket*
+  - Resource ID: S3 bucket name from *WildRydesDataLakeBucket*. (Use CloudFormation *Ref* function)
+- Rule source
+  - Owner: *AWS*
+  - Identifier: *S3_BUCKET_PUBLIC_WRITE_PROHIBITED*
+
+<details>
+<summary><strong>Answer</strong></summary>
+<p>
+
+```diff
+--- a/serverless.yml
++++ b/serverless.yml
+@@ -60,3 +60,32 @@ resources:
+     WildRydesDataLakeBucket:
+       Type: "AWS::S3::Bucket"
+
++    S3PublicReadProhibitedConfigRule:
++      Type: AWS::Config::ConfigRule
++      Properties:
++        ConfigRuleName: "S3PublicReadProhibitedConfigRule-${self:provider.stage}"
++        Description: "Checks that your S3 buckets do not allow public read access. If an S3 bucket policy or bucket ACL allows public read access, the bucket is noncompliant."
++        Scope:
++          ComplianceResourceTypes:
++            - AWS::S3::Bucket
++          ComplianceResourceId:
++            Ref: WildRydesDataLakeBucket
++        Source:
++          Owner: AWS
++          SourceIdentifier: S3_BUCKET_PUBLIC_READ_PROHIBITED
++
++    S3PublicWriteProhibitedConfigRule:
++      Type: AWS::Config::ConfigRule
++      Properties:
++        ConfigRuleName: "S3PublicWriteProhibitedConfigRule-${self:provider.stage}"
++        Description: "Checks that your S3 buckets do not allow public write access. If an S3 bucket policy or bucket ACL allows public write access, the bucket is noncompliant."
++        Scope:
++          ComplianceResourceTypes:
++            - AWS::S3::Bucket
++          ComplianceResourceId:
++            Ref: WildRydesDataLakeBucket
++        Source:
++          Owner: AWS
++          SourceIdentifier: S3_BUCKET_PUBLIC_WRITE_PROHIBITED
++
+```
+
+</p>
+</details>
+
+Once you've updated the *serverless.yml* file, deploy the updated *wild-rides-ride-data-lake* service.
+
+```
+$ sls deploy -v
+```
+
+Verify compliance of the *WildRydesDataLakeBucket* S3 bucket using the command line by running the following command. *(CONFIG_RULE_NAME is the value of ConfigRuleName in serverless.yml. eg. S3PublicWriteProhinitedConfigRule-user0)*
+
+```
+$ aws configservice get-compliance-details-by-config-rule --config-rule-name <CONFIG_RULE_NAME>
+```
+
+<details>
+<summary><strong>Output</strong></summary>
+<p>
+
+```
+{
+    "EvaluationResults": [
+        {
+            "EvaluationResultIdentifier": {
+                "EvaluationResultQualifier": {
+                    "ConfigRuleName": "S3PublicWriteProhinitedConfigRule-training-dev",
+                    "ResourceType": "AWS::S3::Bucket",
+                    "ResourceId": "wild-rydes-ride-data-lake-wildrydesdatalakebucket-1jhtjotdqf5bb"
+                },
+                "OrderingTimestamp": 1547220922.634
+            },
+            "ComplianceType": "COMPLIANT",
+            "ResultRecordedTime": 1547222154.88,
+            "ConfigRuleInvokedTime": 1547222154.653
+        }
+    ]
+}
+```
+</p>
+</details>
+
 ## Q&A
 
 ### S3 Bucket Access
