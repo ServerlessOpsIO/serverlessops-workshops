@@ -87,7 +87,7 @@ In this module once we've remediated our bucket access issue we'll deploy Config
 
 These are the two services we will be working with in this module.
 
-### ![Wild Rydes Data Lake](/Users/tom/Source/serverlessops/serverlessops-workshops/images/wild-rydes-ride-record-and-data-lake.png)
+### ![Wild Rydes Data Lake](../../images/wild-rydes-ride-record-and-data-lake.png)
 
 ### wild-rydes-ride-data-lake
 
