@@ -5,9 +5,21 @@ This workshop demonstrates typical problems in the operation of serverless syste
 * [Performance](./02-performance)
 * [Architecture](./03-architecture)
 
+After the workshop the participant should be familiar with common serverless operational concerns and how to remediate them.
+
+## Operations Concepts Covered
+
+* Application failures and performance issues
+  * Find a fault in a service that causes the application to failure for a user.
+  * Use metrics and logs to diagnose these issues
+* Function Instrumentation
+  * Add instrumentation to a function to help diagnose where issues lay.
+* Architectural decision making
+  * Refactor a service for optimal performance and cost.
+
 ## Tech Stack
 
-This workshop will introduce new services as a part of Wild Rydes and a third-party service for monitoring the performance of a Lambda function.
+This workshop will build off the services in the [Up And Running workshop](../01-up-and-running/) and will introduce new services as a part of Wild Rydes and a third-party service for monitoring the performance of a Lambda function.
 
 3rd Party Services used:
 
