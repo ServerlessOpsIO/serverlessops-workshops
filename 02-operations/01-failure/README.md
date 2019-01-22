@@ -17,7 +17,7 @@ In this module we’ll increase load on the application to trigger a failure som
 
 __Objectives:__
 
-* Understand how to find failures and performance issues in our application.
+* Understand how to find failures in our application.
 * Understand how to instrument a function to obtain metrics, logs, and trace data.
 
 Goals:
@@ -25,37 +25,28 @@ Goals:
 * Pinpoint application failure that is causing some suers to receive 500 errors.
 * Add the Thundra agent to Wyld Rydes applications.
 
-## Failure, Performance, and Instrumentation
-<!-- FIXME: Add content. Explain scenario. -->
-* How?
-* why?
-* Tools?
-  * Logging
-  * Monitoring
-
-## Scenario
-<!-- FIXME: Add content -->
+## Serverless Failure And Function Instrumentation
+What we'll cover in this module is solving a routine application failure caused by an issue with one of the services. You will see how an error in one service might be discovered by issues found in a different service. It is important to remember that serverless applications composed of many services can become complex and often finding the cause of an issue might require traversing service boundaries. In addition, while the issues we'll be encountering in this module are common, focus on how we found the issues. The process and techniques we use to diagnose the cause of issues is far more important and will help you to solve an even larger variety of issues.
 
 ## Tech Stack
 
-### Wild Rydes
-
 This workshop module will involve the following Wild Rydes services.
- * [wild-rydes-ride-record](https://github.com/ServerlessOpsIO/wild-rydes-ride-record): Service for recording rides requested.
- * [wild-rydes](https://github.com/ServerlessOpsIO/wild-rydes): Frontend website and ride request service.
+* [wild-rydes-ride-record](https://github.com/ServerlessOpsIO/wild-rydes-ride-record): Service for recording rides requested.
+* [wild-rydes](https://github.com/ServerlessOpsIO/wild-rydes): Frontend website and ride request service.
 
 *Note: if you've done the [Serverless Up and Running workshop](../../01-up-and-running/02-build-new-service) we'll be replacing what you've deployed with versions meant for this workshop. Without replacing your version with the version for this workshop certain steps may not succeed.*
 
-<!-- FIXME: Add diagram -->
+![Service Diagram](../../images/wild-rydes-and-ride-record.png)
 
 ### Tools
-<!-- FIXME: Add content -->
+
+To aide us in this module we'll be employing two tools.
 
 #### Thundra
-<!-- FIXME: Add content -->
+[Thundra](https://thundra.io) is a serverless monitoring and observability platform designed for AWS Lambda environments. The platform will collect function invocation metrics and logs that will help us diagnose the cause of the issues we find.
 
 #### Artillery
-<!-- FIXME: Add content -->
+[Artillery](https://artillery.io/) is a load testing tool taht we will use to simulate traffic on our site. Using this tool we will trigger failures.
 
 ## Instructions
 
@@ -699,6 +690,7 @@ Summary report @ 00:20:35(+0000) 2018-12-11
 ```
 
 ### 6. Look at failed invocations in Thundra
+<!-- FIXME: This needs finishing. -->
 <!-- we have two issues: 1) bad response from wild-rydes-ride-record, 2) retries to wild-rydes-ride-record cause RequestRide to timeout -->
 
 <!-- login -->
@@ -720,7 +712,7 @@ Filter your function invocations by changing the "FAULTY" value from "ALL" to "T
 <!-- FIXME: Add screenshot -->
 
 <!-- Investigate an invocation -->
-Look at one of the failed invocations. When looking at the trace chart, notice that *_post_ride_record()* takes the majority of the invocation time. The issue of this function timing out appears to stem from the function that communicates with the wild-rydes-ride-record service. We'll investigate this
+Look at one of the failed invocations. When looking at the trace chart, notice that *_post_ride_record()* takes the majority of the invocation time. The issue of this function timing out appears to stem from the function that communicates with the *wild-rydes-ride-record* service. We'll investigate this further.
 <!-- FIXME: Add screenshot -->
 
 <!-- FIXME: Can't find failed invocations! appears to be due to my raise of DDB error?
