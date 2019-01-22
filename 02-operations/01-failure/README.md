@@ -284,7 +284,7 @@ added 266 packages in 6.101s
 </p>
 </details>
 
-Artillery will bypass the application frontend and directly call the API Gateway endoint in *wild-rydes* that triggers the *RequestRide* Lambda function. Start by getting the value of *ServiceEndpoint* from the *wild-rydes* stack outputs. Use `sls info -v` to obtain the value. You'll need this value so you know what API endpoint to target with Artillery.
+Artillery will bypass the application frontend and directly call the API Gateway endpoint in *wild-rydes* that triggers the *RequestRide* Lambda function. Start by getting the value of *ServiceEndpoint* from the *wild-rydes* stack outputs. Use `sls info -v` to obtain the value. You'll need this value so you know what API endpoint to target with Artillery.
 ```
 $ cd $WORKSHOP/wild-rydes
 $ sls info -v
@@ -329,7 +329,7 @@ The configuration file for Artillery will run the command for 3 minutes. You may
 $ artillery run -t <ServiceEndpoint> -c tests/artillery-high-load-config.yml tests/artillery.yml
 ```
 
-In the output under `Codes` section of the final report you should see HTTP 5XX codes
+In the output under the `Codes` section of the final report you should see HTTP 5XX codes
 
 ```
 All virtual users finished
@@ -363,13 +363,13 @@ Error codes:
 
 ### 3. Collect metrics and logs from *wild-rydes* *RequestRide*
 <!-- Start collecting traces and logs -->
-Start collecting metrics and logs from *RequestRide* in *wild-rydes* to the Thundra platform. We'll instrument this function by using the [Thundra Python agent](https://github.com/thundra-io/thundra-lambda-agent-python). (You;; instrument the Lambda functions in *wild-rydes-ride-record* in a later module.) By instrumenting the function we'll allow the Thundra platform to start collecting invocation metrics, logs, and trace the length of time spent performing different actions in the Lambda function's code.
+Start collecting metrics and logs from *RequestRide* in *wild-rydes* to the Thundra platform. We'll instrument this function by using the [Thundra Python agent](https://github.com/thundra-io/thundra-lambda-agent-python). (You'll instrument the Lambda functions in *wild-rydes-ride-record* in a later module.) By instrumenting the function we'll allow the Thundra platform to start collecting invocation metrics, logs, and trace the length of time spent performing different actions in the Lambda function's code.
 
-*NOTE: Thundra has the ability to automatically instrument functions through the Serverless Framework plugin [serverless-plugin-thundra](https://github.com/thundra-io/serverless-plugin-thundra). Thiw workshop indruments the function manually to demonstrate the actual work involved. We feel this is important for those coming to serverless without an extensive coding background. We want people to see how approachable this work is for non-developers.*
+*NOTE: Thundra has the ability to automatically instrument functions through the Serverless Framework plugin [serverless-plugin-thundra](https://github.com/thundra-io/serverless-plugin-thundra). This workshop insruments the function manually to demonstrate the actual work involved. We feel this is important for those coming to serverless without an extensive coding background. We want people to see how approachable this work is for non-developers.*
 
 #### Add Thundra module
 <!-- FIXME: Evaluate Thundra automated for time. -->
-Add the Thundra Python module to wild-rydes. By adding the module we allow Thundra to start collecting basic invocation metrics such as duration, memory usage, and CPU usage.
+Add the Thundra Python module to *wild-rydes*. By adding the module we allow Thundra to start collecting basic invocation metrics such as duration, memory usage, and CPU usage.
 
 <!-- install Python module -->
 Start by installing the Python module for Thundra.
@@ -421,6 +421,7 @@ You should consider upgrading via the 'pip install --upgrade pip' command.
 
 #### Update *serverless.yml*
 <!-- Add API key to serverless.yml -->
+<!-- FIXME: We might condense this to a single step. Maybe don't need param under custom section.-->
 Add the Thundra API key to the *serverless.yml* file. This API key is necessary for the Thundra agent to ship to the platform. You'll fetch the key value from AWS SSM Parameter Store where we've centrally stored it and then configure it be an environmental variable value in the Lambda function's runtime environment.
 
 In the *serverless.yml* file create the key *custom.thundraApiKey*. (You're creating a key called *thundraApiKey* under the *custom* key in the file.) The API key's value is stored in AWS SSM Parameter Store under the name `/thundra/root/api-key`. Use Serverless Framework's ability to lookup values in SSM Parameter Store to populate the key value.

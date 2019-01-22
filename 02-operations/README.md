@@ -9,9 +9,9 @@ After the workshop the participant should be familiar with common serverless ope
 
 ## Operations Concepts Covered
 
-* Application failures and performance issues
+* Application failures issues
   * Find a fault in a service that causes the application to failure for a user.
-  * Use metrics and logs to diagnose these issues
+  * Use metrics and logs to diagnose the issue
 * Function Instrumentation
   * Add instrumentation to a function to help diagnose where issues lay.
 * Architectural decision making
