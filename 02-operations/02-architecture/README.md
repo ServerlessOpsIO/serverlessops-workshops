@@ -1,13 +1,9 @@
 # Serverless Architecture And Design
 
-<!-- Focus on cost & performance (bypass APIG to lower cost and increase performance), and resiliency (DLQs) -->
-
-<!-- tasks
-    * refactor wild-rydes to have SNS
-    * Refactor wild-rydes record to subscribe to SNS
-    * Refcator handler to deal with both.
-    * add DLQ to SNS
--->
+<!--
+    Focus on:
+    cost & performance (bypass APIG to lower cost and increase performance)-->
+    
 
 In this module we're cover architectural patterns to address concerns about reliability, performance, and cost. We'll do this by refactoring the _wild-rydes-ride-record_ service.
 
@@ -33,16 +29,6 @@ Goals:
 * price comparison
 * performance comparison
 -->
-
-... DDB auto-scaling v. on-demand
-<!--
-We should cover the questions about this in the intro
-* sns -> Lambda -> DDB (ASG)
-* sns -> Lambda -> DDB (on-demand)
-* sns -> SQS - > Lambda -> DDB (ASG)
--->
-
-...dead letter queues, invocation retries...
 
 ## Instructions
 <!--
@@ -381,39 +367,7 @@ $ cd $WORKSHOP/wild-rydes
 $ sls deploy -v
 ```
 
-### 2. Add DynamoDB scaling in *wild-rydes-ride-record*
-Add the ability to scale to your DynamoDB table by enabling on-demand pricing. There isn't enough data to properly size the read and write capacity on the table so this is the best choice for scaling the table. If we could predict load, then we would have chosen to implement DynamoDB auti-scaling.
-
-To do this, remove the *ProvisionedThroughput* configuration on the *RideRecordTable* CloudFormation resource and add the *BillingMode* key with a value of *PAY_PER_REQUEST*.
-
-Reference the CloudFormation documentation here:
-
-* [CloudFormation AWS::DynamoDB::Table](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html)
-
-<details>
-<summary><strong>Answer</strong></summary>
-<p>
-
-```diff
---- a/serverless.yml
-+++ b/serverless.yml
-@@ -65,9 +65,7 @@ resources:
-         KeySchema:
-           - AttributeName: ${self:custom.ddb_table_hash_key}
-             KeyType: HASH
--        ProvisionedThroughput:
--          ReadCapacityUnits: 1
--          WriteCapacityUnits: 1
-+        BillingMode: PAY_PER_REQUEST
-
-     ServiceUrlSsmParam:
-       Type: "AWS::SSM::Parameter"
-```
-</p>
-</details>
-
-
-### 3. Refactor *handlers/put_ride_record.py* in *wild-rydes-ride-record* to support API Gateway and SNS events
+### 2. Refactor *handlers/put_ride_record.py* in *wild-rydes-ride-record* to support API Gateway and SNS events
 Refactor *handlers/put_ride_record.py* so there are separate handler functions for both API Gateway and SNS events and a function to write data to DynamoDB. To do this we want to ensure that there is a logical separation in our code between the handling of invocation events and the writing of data to DynamoDB.
 
 Look at the current *handler()* code in *handlers/put_ride_record.py*:
@@ -816,7 +770,7 @@ def handler_sns(event, context):
 </p>
 </details>
 
-### 4. Create new function handlers in *wild-rydes-ride-record*
+### 3. Create new function handlers in *wild-rydes-ride-record*
 Add new Lambda functions for the new Python function handlers. You'll do this by replacing the Lambda function *PutRideRecord* with *PutRideRecordSns* and *PutRideRecordHttp*.
 
 #### Update *PutRideRecord* function to become *PutRideRecordHttp*
@@ -892,123 +846,14 @@ How to trigger a Lambda function via an SNS event can be found here:
 </p>
 </details>
 
-### 5. Add dead letter queue to _PutRideRecordSns_
-Add a dead letter queue for the _PutRideRecordSns_ Lambda function. While SNS guarantees message delivery to our Lambda function, our function is not guaranteed to execute successfully. When a Lambda function is triggered by an SNS event and the Lambda function fails to complete successfully, [Lambda will retry the function up to twice more with delays in between invocations](https://docs.aws.amazon.com/lambda/latest/dg/retries-on-errors.html). If all three invocations fail we want to drop the event is either discarded, or, sent to an SNS topic or SQS queue if a [dead letter configuration](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-lambda-function-deadletterconfig.html) exists. We’ll add an SQS queue in this step and we'll do this by using a Serverless Framework plugin called [serverless-plugin-lambda-dead-letter](https://github.com/gmetzker/serverless-plugin-lambda-dead-letter).
-
-
-#### Serverless Framework plugin
-Install the Serverless Framework plugin serverless-plugin-lambda-dead-letter.
-```
-$ sls plugin install -n serverless-plugin-lambda-dead-letter
-```
-<details>
-<summary><strong>Output</strong></summary>
-<p>
-
-```
-Serverless: Installing plugin "serverless-plugin-lambda-dead-letter@latest" (this might take a few seconds...)
-Serverless: Successfully installed "serverless-plugin-lambda-dead-letter@latest"
-```
-</p>
-</details>
-
-#### SQS Queue
-Create an SQS queue. The SQS Queue's CloudFormation resource name should be *PutRideRecordSnsDlq*. You won't need to configure any properties on the CloudFormation resource.
-
-Use the CloudFormation documentation linked below.
-* [CloudFormation AWS::SQS::Queue](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-sqs-queues.html)
-
-<details>
-<summary><strong>Answer</strong></summary>
-<p>
-
-```diff
---- a/serverless.yml
-+++ b/serverless.yml
-@@ -93,6 +103,9 @@ resources:
-               - ".amazonaws.com/${self:custom.stage}"
-               - "${self:custom.sevrice_url_path_base}"
-
-+    PutRideRecordSnsDlq:
-+      Type: AWS::SQS::Queue
-+
-   Outputs:
-     RideRecordUrl:
-       Description: "URL of service"
-```
-</p>
-</details>
-
-#### IAM permissions
-Give the *PutRideRecordSns* Lambda function the ability to write to the queue.  Do this by adding an additional IAM policy statement under the `provider.iamRoleStatements` key that allows the *sqs:SendMessage* action on the new SQS queue. You can look at the existing statement allowing writes to DynamoDB for guidance.
-
-The following documentation resources will help you accomplish this.
-
-* [Serverless Framework IAM Role Statements](https://serverless.com/framework/docs/providers/aws/guide/iam/)
-* [SQS IAM Permissions](https://docs.aws.amazon.com/IAM/latest/UserGuide/list_amazonsqs.html)
-* [CloudFormation AWS::SQS::Queue - Return Values](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-sqs-queues.html#aws-properties-sqs-queues-ref)
-
-<details>
-<summary><strong>Answer</strong></summary>
-<p>
-
-```diff
---- a/serverless.yml
-+++ b/serverless.yml
-@@ -39,6 +39,13 @@ provider:
-         Fn::GetAtt:
-           - RideRecordTable
-           - Arn
-+    - Effect: Allow
-+      Action:
-+        - sqs:SendMessage
-+      Resource:
-+        Fn::GetAtt:
-+          - PutRideRecordSnsDlq
-+          - Arn
-
- functions:
-   PutRideRecordHttp:
-```
-</p>
-</details>
-
-#### Lambda Function Update
-Add the dead letter queue configuration to the *PutRideRecordSns* Lambda function. You do this by adding a `deadLetter.targetArn.GetResourceArn` key for the function and it’s value is the name of the SQS queue CloudFormation resource, *PutRideRecordSnsDlq*.
-
-You can refer to the documentation for *serverless-plugin-lambda-dead-letter*.
-
-* [serverless-plugin-lambda-dead-letter Method-3: Use a queue/topic created in the resources](https://github.com/gmetzker/serverless-plugin-lambda-dead-letter#method-3)
-
-<details>
-<summary><strong>Output</strong></summary>
-<p>
-
-```diff
-@@ -62,6 +62,9 @@ functions:
-     environment:
-       DDB_TABLE_NAME:
-         Ref: RideRecordTable
-+    deadLetter:
-+      targetArn:
-+        GetResourceArn: PutRideRecordSnsDlq
-     events:
-       - sns: "${self:custom.wild_rydes_sns_topic_arn}"
-
-```
-</p>
-</details>
-
-Now if there’s a failure by your *PutRideRecordSns* Lambda function to process an event, the event won’t be lost and can be reprocessed later.
-
-### 6. Deploy *wild-rides-ryde-record*
+### 4. Deploy *wild-rides-ryde-record*
 Deploy the updated *wild-rides-ryde-record* service.
 
 ```
 $ sls deploy -v
 ```
 
-### 7. Use Artillery to trigger the RequestRide function.
+### 5. Use Artillery to trigger the RequestRide function.
 Using Artillery, trigger the *RequestRide* function. This time you should see no errors.
 ```
 $ artillery run -t <ServiceEndpoint> -c tests/artillery-high-load-config.yml tests/artillery.yml
@@ -1033,25 +878,6 @@ Summary report @ 18:10:15(+0000) 2018-12-13
 ```
 
 ## Q&A
-
-### 1. DynamoDB auto-scaling
-
-Q. How does DynamoDB auto-scaling work
-
-Q. How does this fail when traffic bursts too quickly?
-
-Q. What is an alternative way to solving the failure?
-<!-- Use on-demand DDB provisioning. -->
-
-Q. How might you re-architect your application to better handle this?
-
-### 2. API Gateway Costs
-
-Q. Calculate the costs of Lambda and API Gateway for _wild-rydes-ride-record_ _PutRideRecord_ at
-
-  * 100ms run time
-  * 128MB RAM
-  * 10,000,000 requests in a month
 
 ### 2. Refactoring
 
@@ -1079,18 +905,3 @@ The instructions in this module are meant to be easy to follow but aren't necess
 </p>
 </details>
 
-### 3. DynamoDB
-Q. Calculate the approximate cost of the following designs for a million messages.
-<!--
-We should cover the questions about this in the intro
-* sns -> Lambda -> DDB (ASG)
-* sns -> Lambda -> DDB (on-demand)
-* sns -> SQS - > Lambda -> DDB (ASG)
--->
-
-### 4. SNS
-Q. what is the difference in performance on wild-rydes after switching to SNS?
-
-Q. What is the difference in *RequestRide* invocation duration performance now that you publish to SNS instead of API Gateway.
-
-Q. **EXTRA CREDIT:** Create a dead letter queue processor function.
