@@ -28,6 +28,24 @@ Goals:
 ## Serverless Failure And Function Instrumentation
 What we'll cover in this module is solving a routine application failure caused by an issue with one of the services. You will see how an error in one service might be discovered by issues found in a different service. It is important to remember that serverless applications composed of many services can become complex and often finding the cause of an issue might require traversing service boundaries. In addition, while the issues we'll be encountering in this module are common, focus on how we found the issues. The process and techniques we use to diagnose the cause of issues is far more important and will help you to solve an even larger variety of issues.
 
+### Serverless Failure
+
+There are many ways a serverless application can fail. In this module you'll be presented with one of them... But you'll have to find what the failure is. Rather than presenting you with a canned set of failure modes, we're going to walk through the process of finding the cause of an unknown failure in this workshop. We also want you to see another important aspect of serverless application failures. The system where you observe the failure symptom may not be the service causing the failure.
+
+### Function Instrumentation
+Instrumentation allows us to collect data from our code as it runs so we can determine what it is doing. To instrument some of our code, we'll add the Thundra platform's Python module to the *wild-rydes* *RequestRide* function. By doing this we'll start collecting:
+
+* Function invocation metrics
+  * Function duration
+  * Memory usage
+  * CPU usage
+* Function tracing
+  * Duration of Python functions inside our Lambda function
+* Triggering event data
+* Function logs
+
+We'll use the data we gather to help us find where our application is failing.
+
 ## Tech Stack
 
 This workshop module will involve the following Wild Rydes services.
@@ -40,13 +58,13 @@ This workshop module will involve the following Wild Rydes services.
 
 ### Tools
 
-To aide us in this module we'll be employing two tools.
-
-#### Thundra
-[Thundra](https://thundra.io) is a serverless monitoring and observability platform designed for AWS Lambda environments. The platform will collect function invocation metrics and logs that will help us diagnose the cause of the issues we find.
+To aid us in this module we'll be employing two tools. We'll use one to help us generate failures by automating requests to the service and another tool to help us find the cause of these failures.
 
 #### Artillery
 [Artillery](https://artillery.io/) is a load testing tool taht we will use to simulate traffic on our site. Using this tool we will trigger failures.
+
+#### Thundra
+[Thundra](https://thundra.io) is a serverless monitoring and observability platform designed for AWS Lambda environments. The platform will collect function invocation metrics and logs that will help us diagnose the cause of the issues we find.
 
 ## Instructions
 
