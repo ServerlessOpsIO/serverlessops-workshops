@@ -2,40 +2,48 @@
 
 <!--
     Focus on:
-    cost & performance (bypass APIG to lower cost and increase performance)-->
-    
+        * Event driven v. request driven architecture
+        * cost & performance (bypass APIG to lower cost and increase performance)
+-->
 
-In this module we're cover architectural patterns to address concerns about reliability, performance, and cost. We'll do this by refactoring the _wild-rydes-ride-record_ service.
+In this module we're cover event driven architecture and address concerns about the Wild Rydes application's reliability, performance, and cost. We'll do this by refactoring the _wild-rydes-ride-record_ service to support an event driven architecture in addition to its microservice web request architecture.
 
 ## Goals and Objectives
 
-__Objectives:__
 
-* Understand architectural decisions that affect
-    * Performance
-    * Reliability
-    * Cost
+<!-- FIXME: Fix goals and objectives. -->
+__Objectives:__
+* Understand event-driven architecture and how it affects
 
 Goals:
+* Refactor _wild-rydes-request-ride_ for event-driven architecture.
 
-* Increase speed performance of _wild-rydes_ and decrease cost of _wild-rydes-request-ride_ by bypassing API Gateway to _wild-rydes-request-ride_.
-* Increase reliability of ride event delivery by implementing Lambda dead letter queues
-
-## Serverless Architecture And Design
+## Event-Driven Architecture
 <!-- FIXME: Add diagram of current arch and future arch -->
+So far the Wild Rydes application has used a traditional web services microservice design.  That is, we have separately deployable services that do a particular thing well and communication is performed between services via web requests. Here is an illustration of the Wild Rydes architecture currently.
 
-...API web service versus SNS event driven...
-<!--
-* price comparison
-* performance comparison
--->
+
+![Service Diagram](../../images/wild-rydes-microservices.png)
+
+In this architecture, the user makes a request for a ride to an API Gateway endpoint which triggers the *RequestRide* Lambda function.  The *RequestRide* function in turn requests a unicorn from the fleet by making a request to the API Gateway for *wild-rydes-ride-fleet* which triggers the *GetUnicorn* Lambda function to fetch a unicorn and return that information to *RequestRide*.  Next, the *RequestRide* function sends data about the ride request to *wild-rydes-ride-record's* API Gateway where it triggers the *RecordRide* Lambda function to write the data to DynamoDB. Finally, a response is sent to a user. This is how a typical web services microservice architecture functions.
+
+Let's take a few moments to examine this architecture and some inefficiencies in it. All the requests between service are made synchronously. Each time *RequestRide* makes a request to another service it waits for that request to complete by the other service responding back. For requesting a member of the ride fleet this makes sense because we expect *RequestRide* to return information about their ride to the user.
+
+*NOTE: It's possible to rearchitect the entire application so it is entirely event based. However we'd need to alter the frontend web application to either poll for ride request data or accept a push notification. At a certain scale this probably makes sense. But it adds unnecessary complexity to the scale we are currently solving for.*
+
+<!-- FIXME: we should calculate the amount of latency APIG introduces. -->
+On the other hand, the synchronous request to *wild-rides-ride-record* and *RecordRide* adds unnecessary time (and cost as API Gateway requests are billed separately from Lambda function invocations) to the user's request for a ride. From an engineering perspective, API Gateway adds additional overhead to the request in both terms of time and cost. From the view of the user, they are forced to wait for *wild-rydes-ride-record* to receive a request, trigger our Lambda function, write information to DynamnoDB, and return a response to the *wild-rydes* *RequestRide* function. However, none of those operations are relevant to the user as they use the Wild Rydes application.
+
+To improve the user's experience we'll convert the process of recording rides to an event driven architecture. Instead of synchronously making a web services request, *RequestRide* will emit an event which will trigger a new Lambda function in the *wild-rydes-ride-record* service. This is what our new architecture will look like.
+
+![Service Diagram](../../images/wild-rydes-event-driven.png)
+
+Instead of *RequetRide* in the *wild-rydes* service making a web request to the *wild-rydes-ride-record* service to trigger the *RecordRide* Lambda function, *RequestRide* will publish a message to an SNS topic. The *wild-rydes-ride-record* service will have a function that is subscribed to the SNS topic which will write the ride data to DynamoDB. This will allow *RequetRide* to complete and return information to the user without needing to wait for our backend service to write to DynamoDB.
+
+In moving to an event-driven architecture for writing ride information to DynamoDB we'll address some additional concerns. For example, what happens if our Lambda function is unable to write to DynamoDB? What happens to that message and how do we ensure it does not get lost? For that, we'll add a dead letter queue where events that our Lambda function was unable to process will go. Additionally, since this service manages the records of rides dispatched by Wild Rydes, it's not at all unlikely that we'll need to continue supporting API Gateway. We'll refactor our code so it can handle writing ride records via an SNS or API Gateway event.
 
 ## Instructions
-<!--
-    The instructions are written for brevity and clarity but result in an outage.
--->
 ### 1. Add SNS topic to _wild-rydes_
-<!-- FIXME: Add diagram of what to build -->
 Create an SNS topic which *RequestRide* will publish ride information too. Instead of publishing to the *wild-rydes-ride-record* service, waiting for a response, and handling errors from the *wild-rydes-ride-record* service, *RequestRide* will publish a message to SNS and continue on.
 
 This change will:
@@ -905,3 +913,9 @@ The instructions in this module are meant to be easy to follow but aren't necess
 </p>
 </details>
 
+
+Q. Explain the retry behavior of Lambda functions subscribed to an SNS topic.
+
+Q. Explain the retry behavior of Lambda functions triggered by API Gateway.
+
+Q. EXTRA CREDIT: Calculate the overhead API Gateway causes on Wild Rydes.
