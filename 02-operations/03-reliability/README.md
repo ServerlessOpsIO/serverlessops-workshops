@@ -1,42 +1,25 @@
 # Serverless Reliability
 
-<!-- Focus on cost & performance (bypass APIG to lower cost and increase performance), and resiliency (DLQs) -->
-
-<!-- tasks
-    * refactor wild-rydes to have SNS
-    * Refactor wild-rydes record to subscribe to SNS
-    * Refcator handler to deal with both.
-    * add DLQ to SNS
--->
-
-In this module we're cover architectural patterns to address concerns about reliability, performance, and cost. We'll do this by refactoring the _wild-rydes-ride-record_ service.
+In this module we're cover aspects of ensuring reliability of a serverless application. We'll do this by addressing an issue you may run across with DynamoDB, how that issue might cause silent failures, and finally how to mitigate those failures.
 
 ## Goals and Objectives
 
 __Objectives:__
 
-* Understand architectural decisions that affect
-    * Performance
-    * Reliability
-    * Cost
+* Understand where and how a serverless event-driven application can fail
 
-Goals:
+**Goals**:
 
-* Increase speed performance of _wild-rydes_ and decrease cost of _wild-rydes-request-ride_ by bypassing API Gateway to _wild-rydes-request-ride_.
-* Increase reliability of ride event delivery by implementing Lambda dead letter queues
+* Increase reliability of ride event delivery by:
+  * implementing Lambda dead letter queues
+  * Configuring DynamoDB for scalability
 
-## Serverless Architecture And Design
+## Serverless Reliability
 <!-- FIXME: Add diagram of current arch and future arch -->
 
-... DDB auto-scaling v. on-demand
-<!--
-We should cover the questions about this in the intro
-* sns -> Lambda -> DDB (ASG)
-* sns -> Lambda -> DDB (on-demand)
-* sns -> SQS - > Lambda -> DDB (ASG)
--->
+We're now going to address the failures we saw in the first module.  In moving to an event-driven architecture for writing ride information to DynamoDB in the previous module, we hid the problems in our architecture from the user but we did solve them. This illustrates an issue in event-driven architectures. You may have failures down stream which need to be caught and handled because the triggering action has already finished. (eg. If recording the a ride fails we can't force the user to order a new one so we can trigger the process again.)
 
-...dead letter queues, invocation retries...
+What we want to do in this module is first minimize the liklihood that DynamoDB writes fail and second ensure that we catch the events where writes did not successfully complete. To do this we'll configure DynamoDB to scale with demand. Because it's still possible for DynamoDB writes to fail (the cloud is still unpredictible) we will also setup a dead letter queue for the *PutRideRecordSns* Lambda function. If the Lambda function fails to successfully complete after its retries are exhausted, the event will deposited to an SQS queue. This allows us to retry processing the event at a later point.
 
 ## Instructions
 <!--
@@ -154,7 +137,7 @@ Now if there’s a failure by your *PutRideRecordSns* Lambda function to process
 
 
 ### 2. Add DynamoDB scaling in *wild-rydes-ride-record*
-Add the ability to scale to your DynamoDB table by enabling on-demand pricing. There isn't enough data to properly size the read and write capacity on the table so this is the best choice for scaling the table. If we could predict load, then we would have chosen to implement DynamoDB auti-scaling.
+Add the ability to scale to your DynamoDB table by enabling on-demand pricing. There isn't enough data to properly size the read and write capacity on the table so this is the best choice for scaling the table. If we could predict load, then we would have chosen to implement DynamoDB auto-scaling.
 
 To do this, remove the *ProvisionedThroughput* configuration on the *RideRecordTable* CloudFormation resource and add the *BillingMode* key with a value of *PAY_PER_REQUEST*.
 
@@ -197,4 +180,8 @@ Q. What is an alternative way to solving the failure?
 <!-- Use on-demand DDB provisioning. -->
 
 Q. How might you re-architect your application to better handle this?
+
+**EXTRA CREDIT** Q. Write a function to process the dead letter queue.
+
+**EXTRA CREDIT** Q. You may find your traffic is predictible and also at a scale where the cost overhead of on-demand DynamoDB scaling makes configuring auto-scaling more appealing. Configure your DynamoDB table. Use the [serverless-dynamodb-autoscaling Serverless Framework plugin](https://github.com/sbstjn/serverless-dynamodb-autoscaling) to setup auto-scaling.
 

@@ -20,7 +20,7 @@ __Objectives:__
 * Understand how to find failures in our application.
 * Understand how to instrument a function to obtain metrics, logs, and trace data.
 
-Goals:
+__Goals:__
 
 * Pinpoint application failure that is causing some suers to receive 500 errors.
 * Add the Thundra agent to Wyld Rydes applications.

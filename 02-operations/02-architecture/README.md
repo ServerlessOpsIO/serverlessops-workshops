@@ -6,7 +6,7 @@
         * cost & performance (bypass APIG to lower cost and increase performance)
 -->
 
-In this module we're cover event driven architecture and address concerns about the Wild Rydes application's reliability, performance, and cost. We'll do this by refactoring the _wild-rydes-ride-record_ service to support an event driven architecture in addition to its microservice web request architecture.
+In this module we're cover event driven architecture. We'll do this by refactoring the _wild-rydes-ride-record_ service to support an event driven architecture in addition to its microservice web request architecture.
 
 ## Goals and Objectives
 
@@ -15,7 +15,7 @@ In this module we're cover event driven architecture and address concerns about 
 __Objectives:__
 * Understand event-driven architecture and how it affects
 
-Goals:
+__Goals:__
 * Refactor _wild-rydes-request-ride_ for event-driven architecture.
 
 ## Event-Driven Architecture
@@ -39,8 +39,6 @@ To improve the user's experience we'll convert the process of recording rides to
 ![Service Diagram](../../images/wild-rydes-event-driven.png)
 
 Instead of *RequetRide* in the *wild-rydes* service making a web request to the *wild-rydes-ride-record* service to trigger the *RecordRide* Lambda function, *RequestRide* will publish a message to an SNS topic. The *wild-rydes-ride-record* service will have a function that is subscribed to the SNS topic which will write the ride data to DynamoDB. This will allow *RequetRide* to complete and return information to the user without needing to wait for our backend service to write to DynamoDB.
-
-In moving to an event-driven architecture for writing ride information to DynamoDB we'll address some additional concerns. For example, what happens if our Lambda function is unable to write to DynamoDB? What happens to that message and how do we ensure it does not get lost? For that, we'll add a dead letter queue where events that our Lambda function was unable to process will go. Additionally, since this service manages the records of rides dispatched by Wild Rydes, it's not at all unlikely that we'll need to continue supporting API Gateway. We'll refactor our code so it can handle writing ride records via an SNS or API Gateway event.
 
 ## Instructions
 ### 1. Add SNS topic to _wild-rydes_
@@ -638,8 +636,10 @@ Create the function *_put_ride_record()* which takes a Python dictionary of ride
 </p>
 </details>
 
+<!-- FIXME: Not sure we need this step. -->
 
 #### Add Thundra support to new functions.
+
 Add the *@thundra* decorator to the *handler_http()* and *handler_sns()* functions to initialize the agent.
 
 <details>
@@ -913,9 +913,6 @@ The instructions in this module are meant to be easy to follow but aren't necess
 </p>
 </details>
 
-
-Q. Explain the retry behavior of Lambda functions subscribed to an SNS topic.
-
-Q. Explain the retry behavior of Lambda functions triggered by API Gateway.
+Q. The retyr behavior of a Lambda function when it has failed is determined by the event type that triggered the function. [The different AWS Lambda retry behaviors are described in this documentation.](https://docs.aws.amazon.com/lambda/latest/dg/retries-on-errors.html) Explain the difference in reytry behavior between Lambda functions triggered by an SNS message and Lambda functions triggered by an API Gateway request.
 
 Q. EXTRA CREDIT: Calculate the overhead API Gateway causes on Wild Rydes.
