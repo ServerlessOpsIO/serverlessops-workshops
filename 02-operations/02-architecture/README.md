@@ -1,4 +1,4 @@
-# Serverless Architecture And Design
+# Serverless Event-Driven / Asynchronous Architecture
 
 <!--
     Focus on:
@@ -6,21 +6,21 @@
         * cost & performance (bypass APIG to lower cost and increase performance)
 -->
 
-In this module we're cover event driven architecture. We'll do this by refactoring the _wild-rydes-ride-record_ service to support an event driven architecture in addition to its microservice web request architecture.
+In this module we'll cover event driven architecture and asynchronous service communication. We'll do this by refactoring the _wild-rydes-ride-record_ service to support an event driven architecture in addition to its microservice web request architecture.
 
 ## Goals and Objectives
 
 
 <!-- FIXME: Fix goals and objectives. -->
 __Objectives:__
-* Understand event-driven architecture and how it affects
+* Understand event-driven architecture and asynchronous service communication.
 
 __Goals:__
 * Refactor _wild-rydes-request-ride_ for event-driven architecture.
 
 ## Event-Driven Architecture
 <!-- FIXME: Add diagram of current arch and future arch -->
-So far the Wild Rydes application has used a traditional web services microservice design.  That is, we have separately deployable services that do a particular thing well and communication is performed between services via web requests. Here is an illustration of the Wild Rydes architecture currently.
+So far the Wild Rydes application has used a traditional web services microservice design.  That is, we have separately deployable services that do a particular thing well and communication is performed synchronously between services via web requests. Here is an illustration of the Wild Rydes architecture currently.
 
 
 ![Service Diagram](../../images/wild-rydes-microservices.png)
@@ -28,8 +28,6 @@ So far the Wild Rydes application has used a traditional web services microservi
 In this architecture, the user makes a request for a ride to an API Gateway endpoint which triggers the *RequestRide* Lambda function.  The *RequestRide* function in turn requests a unicorn from the fleet by making a request to the API Gateway for *wild-rydes-ride-fleet* which triggers the *GetUnicorn* Lambda function to fetch a unicorn and return that information to *RequestRide*.  Next, the *RequestRide* function sends data about the ride request to *wild-rydes-ride-record's* API Gateway where it triggers the *RecordRide* Lambda function to write the data to DynamoDB. Finally, a response is sent to a user. This is how a typical web services microservice architecture functions.
 
 Let's take a few moments to examine this architecture and some inefficiencies in it. All the requests between service are made synchronously. Each time *RequestRide* makes a request to another service it waits for that request to complete by the other service responding back. For requesting a member of the ride fleet this makes sense because we expect *RequestRide* to return information about their ride to the user.
-
-*NOTE: It's possible to rearchitect the entire application so it is entirely event based. However we'd need to alter the frontend web application to either poll for ride request data or accept a push notification. At a certain scale this probably makes sense. But it adds unnecessary complexity to the scale we are currently solving for.*
 
 <!-- FIXME: we should calculate the amount of latency APIG introduces. -->
 On the other hand, the synchronous request to *wild-rides-ride-record* and *RecordRide* adds unnecessary time (and cost as API Gateway requests are billed separately from Lambda function invocations) to the user's request for a ride. From an engineering perspective, API Gateway adds additional overhead to the request in both terms of time and cost. From the view of the user, they are forced to wait for *wild-rydes-ride-record* to receive a request, trigger our Lambda function, write information to DynamnoDB, and return a response to the *wild-rydes* *RequestRide* function. However, none of those operations are relevant to the user as they use the Wild Rydes application.
