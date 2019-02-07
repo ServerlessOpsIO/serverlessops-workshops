@@ -1,9 +1,12 @@
 # Serverless Operations
-This workshop demonstrates typical problems in the operation of serverless systems and responses to these issues. We'll be adding more complexity to the Wild Rydes application and in turn cause bugs to appear in the application. These will be demonstrated by performance issues seen by the user and failures on the backend.
+This workshop demonstrates typical problems in the operation of serverless systems and responses to these issues.
+
+The modules in this workshop are:
 
 * [Failure](./01-failure)
-* [Performance](./02-performance)
-* [Architecture](./03-architecture)
+* [Performance](./02-reliability)
+* [Monitoring](./03-monitoring)
+* [Performance](./04-performance)
 
 After the workshop the participant should be familiar with common serverless operational concerns and how to remediate them.
 
@@ -38,5 +41,5 @@ Our tech stack is as follows.
   * Front end website and ride request backend
 * [wild-rydes-pricing](https://github.com/ServerlessOpsIO/wild-rydes-pricing)
   * Backend service to determine surge or discount pricing
-* [wild-rydes-fleet-dispatch](https://github.com/ServerlessOpsIO/wild-rydes-fleet-dispatch)
-  * Dispatches unicorn from fleet
+* [wild-rydes-fleet-location](https://github.com/ServerlessOpsIO/wild-rydes-fleet-location)
+  * Locates dispatched member of fleet

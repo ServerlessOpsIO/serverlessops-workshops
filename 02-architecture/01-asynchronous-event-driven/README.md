@@ -1,4 +1,4 @@
-# Serverless Event-Driven / Asynchronous Architecture
+# Serverless Asynchronous Event-Driven Architecture
 
 <!--
     Focus on:
