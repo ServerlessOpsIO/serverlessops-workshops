@@ -13,51 +13,28 @@ In this module we'll cover making synchronous requests in between Lambda functio
 
 ## Instructions
 
-### 1. Deploy new services / update existing
-Deploy updates to Wild Rydes application services. This step is to ensure that your code matches the code in the workshop examples.
+In the previous module we noted how our architecture started as a traditional web microservices architecture and how some communication between services could be refactored into an asynchronous event driven architecture which results in faster responses to the user. But not every operation easily fits that pattern easily. And while continuing with a web microservices pattern using API Gateway and Lambda is just fine in many cases, it does add an additional cost (API Gateway requests are charged independent of Lambda invokations) and API Gateway can add additional request latency.
 
-#### wild-rydes-ride-record
-Deploy the wild-rydes-ride-record service. Start by cloning the repository from GitHub, then check out the workshop-operations-01 branch for this workshop module, and finally deploy the application.
+One common operation is fetching data from a data store and returning it to a user. For example, this communication below where out application requests a unicorn from the fleet so it can tell the user who will be picking them up.
+
+![API Gateway Request](../../wild-rydes-apig-request.png)
+
+While this can be done with an asynchronous event-driven architecture, that can be complex to implement and beyond the complexity required for what you're trying to accomplish. And as noted earlier API Gateway has potential minor drawbacks related to cost and latency. If you decide you want to make synchronous requests but it's advantageous for you to not use API Gateway then what do you do?
+
+In this module we'll demonstrate how to have one Lambda function invoke another directly. Instead of an HTTP endpoint providing a stable interface to trigger our code, we will trigger a function handler directly using an [AWS SDK API for Lambda function invocation](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/lambda.html#Lambda.Client.invoke).
+
+![Lambda Invoke Request](../../wild-rydes-lambda-invoke.png)
+
+### 1. Update wild-rydes-ride-fleet
+Deploy the wild-rydes-ride-fleet service. Check out the workshop-operations-01 branch for this workshop module and then deploy the application.
 
 ```
-$ cd $WORKSHOP/
-$ rm -rf wild-rydes-ride-record
-$ git clone https://github.com/ServerlessOpsIO/wild-rydes-ride-record.git
-$ cd wild-rydes-ride-record
-$ git checkout -b workshop-operations-02
-$ npm install
+$ cd $WORKSHOP/wild-rydes-ride-fleet
+$ git checkout -b workshop-architecture-02 origin/workshop-architecture-02
 $ sls deploy -v
 ```
 
-<details>
-<summary><strong>Output</strong></summary>
-<p>
-
-```
-```
-</p>
-</details>
-
-#### wild-rydes
-Deploy the wild-rydes service. Start by cloning the repository from GitHub, then check out the workshop-operations-01 branch for this workshop module, and finally deploy the application.
-
-```
-$ cd $WORKSHOP/wild-rydes
-$ git checkout -b workshop-operations-01 origin/workshop-operations-01
-$ sls deploy -v
-```
-
-<details>
-<summary><strong>Output</strong></summary>
-<p>
-
-```
-```
-</p>
-</details>
-
-
-### 2. Refactor *wild-rydes-ride-fleet* *handlers/get_unicorn.py* for direct invoke
+### 2. Refactor *wild-rydes-ride-fleet* *handlers/get_unicorn.py* for direct invocation.
 
 ### 3. Add new Lambda function handler in *serverless.yml*
 
