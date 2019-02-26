@@ -8,15 +8,19 @@
 
 In this module we'll cover event driven architecture and asynchronous service communication. We'll do this by refactoring the _wild-rydes-ride-record_ service to support an event driven architecture in addition to its microservice web request architecture.
 
+Additionally, we'll revisit service discovery between services by introducing AWS Systems Manager Paramater Store (SSM).
+
 ## Goals and Objectives
 
 
 <!-- FIXME: Fix goals and objectives. -->
 __Objectives:__
 * Understand event-driven architecture and asynchronous service communication.
+* Discover a new method of service discovery in AWS using SSM Parameter Store
 
 __Goals:__
 * Refactor _wild-rydes-request-ride_ for event-driven architecture.
+* Use AWS SSM so *wild-rydes* *RequestRide* can locate *wild-rydes-ride-fleet* *GetUnicorn*.
 
 ## Event-Driven Architecture
 <!-- FIXME: Add diagram of current arch and future arch -->
@@ -37,6 +41,12 @@ To improve the user's experience we'll convert the process of recording rides to
 ![Service Diagram](../../images/wild-rydes-event-driven.png)
 
 Instead of *RequetRide* in the *wild-rydes* service making a web request to the *wild-rydes-ride-record* service to trigger the *RecordRide* Lambda function, *RequestRide* will publish a message to an SNS topic. The *wild-rydes-ride-record* service will have a function that is subscribed to the SNS topic which will write the ride data to DynamoDB. This will allow *RequetRide* to complete and return information to the user without needing to wait for our backend service to write to DynamoDB.
+
+## Service Discovery
+
+ In a previous module we had wild-rydes-ride-record export a URL as a CloudFormation output and wild-rydes queried the value from CloudFormation. This time we’re exporting an SNS topic ARN to AWS Systems Manager Paramater Store (SSM) instead of CloudFormation. SSM is a key-value store and provides an alternative way to perform service discovery in AWS among other uses. We’ll use SSM increasingly in later workshop modules.
+
+Which should you use? It’s a matter of preference. CloudFormation outputs can only be modified by CloudFormation. However, SSM’s hierarchical key paths make it possible to create IAM policies that grant slective read and write capabilities to different keys.
 
 ## Instructions
 
@@ -850,3 +860,5 @@ Q. EXTRA CREDIT: Calculate the overhead API Gateway causes on Wild Rydes.
 ### 3. Service Discovery
 
 Q. SSM parameter store...
+
+```
