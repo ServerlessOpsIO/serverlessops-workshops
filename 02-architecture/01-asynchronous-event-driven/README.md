@@ -1,11 +1,5 @@
 # Serverless Asynchronous Event-Driven Architecture
 
-<!--
-    Focus on:
-        * Event driven v. request driven architecture
-        * cost & performance (bypass APIG to lower cost and increase performance)
--->
-
 In this module we'll cover event driven architecture and asynchronous service communication. We'll do this by refactoring the _wild-rydes-ride-record_ service to support an event driven architecture in addition to its microservice web request architecture.
 
 Additionally, we'll revisit service discovery between services by introducing AWS Systems Manager Paramater Store (SSM).
@@ -13,7 +7,6 @@ Additionally, we'll revisit service discovery between services by introducing AW
 ## Goals and Objectives
 
 
-<!-- FIXME: Fix goals and objectives. -->
 __Objectives:__
 * Understand event-driven architecture and asynchronous service communication.
 * Discover a new method of service discovery in AWS using SSM Parameter Store
@@ -23,8 +16,7 @@ __Goals:__
 * Use AWS SSM so *wild-rydes* *RequestRide* can locate *wild-rydes-ride-fleet* *GetUnicorn*.
 
 ## Event-Driven Architecture
-<!-- FIXME: Add diagram of current arch and future arch -->
-So far the Wild Rydes application has used a traditional web services microservice design.  That is, we have separately deployable services that do a particular thing well and communication is performed synchronously between services via web requests. Here is an illustration of the Wild Rydes architecture currently.
+So far the *Wild Rydes* application has used a traditional web services microservice design.  That is, we have separately deployable services that do a particular thing well and communication is performed synchronously between services via web requests. Here is an illustration of the *Wild Rydes* architecture currently.
 
 
 ![Service Diagram](../../images/wild-rydes-microservices.png)
@@ -33,8 +25,7 @@ In this architecture, the user makes a request for a ride to an API Gateway endp
 
 Let's take a few moments to examine this architecture and some inefficiencies in it. All the requests between service are made synchronously. Each time *RequestRide* makes a request to another service it waits for that request to complete by the other service responding back. For requesting a member of the ride fleet this makes sense because we expect *RequestRide* to return information about their ride to the user.
 
-<!-- FIXME: we should calculate the amount of latency APIG introduces. -->
-On the other hand, the synchronous request to *wild-rides-ride-record* and *RecordRide* adds unnecessary time (and cost as API Gateway requests are billed separately from Lambda function invocations) to the user's request for a ride. From an engineering perspective, API Gateway adds additional overhead to the request in both terms of time and cost. From the view of the user, they are forced to wait for *wild-rydes-ride-record* to receive a request, trigger our Lambda function, write information to DynamnoDB, and return a response to the *wild-rydes* *RequestRide* function. However, none of those operations are relevant to the user as they use the Wild Rydes application.
+On the other hand, the synchronous request to *wild-rides-ride-record* and *RecordRide* adds unnecessary time (and cost as API Gateway requests are billed separately from Lambda function invocations) to the user's request for a ride. From an engineering perspective, API Gateway adds additional overhead to the request in both terms of time and cost. From the view of the user, they are forced to wait for *wild-rydes-ride-record* to receive a request, trigger our Lambda function, write information to DynamnoDB, and return a response to the *wild-rydes* *RequestRide* function. However, none of those operations are relevant to the user as they use the *Wild Rydes* application.
 
 To improve the user's experience we'll convert the process of recording rides to an event driven architecture. Instead of synchronously making a web services request, *RequestRide* will emit an event which will trigger a new Lambda function in the *wild-rydes-ride-record* service. This is what our new architecture will look like.
 
@@ -51,9 +42,9 @@ Which should you use? It’s a matter of preference. CloudFormation outputs can 
 ## Instructions
 
 ### 1. Deploy new services / update existing
-Deploy updates to Wild Rydes application services. This step is to ensure that your code matches the code in the workshop examples.
+Deploy updates to *Wild Rydes* application services. This step is to ensure that your code matches the code in the workshop examples.
 
-#### wild-rydes-ride-record
+#### _wild-rydes-ride-record_
 Deploy the wild-rydes-ride-record service. Start by cloning the repository from GitHub, then check out the workshop-operations-01 branch for this workshop module, and finally deploy the application.
 
 ```
@@ -66,7 +57,7 @@ $ npm install
 $ sls deploy -v
 ```
 
-#### wild-rydes
+#### _wild-rydes_
 Deploy the wild-rydes service. Check out the workshop-operations-01 branch for this workshop module and then deploy the application.
 
 ```
@@ -86,7 +77,7 @@ This change will:
 
 
 #### Add SNS topic to *serverless.yml*
-Create an SNS topic in the `Resources` section of *serverless.yml*. This SNS topic is where *RequestRide* will publish messages to for containing information about the rides it has dispatched. These messages are intended to be processed by downstream services that do not need to run before the Wild Rydes user has been notified of their impending ride. This change increases the responsiveness of the application to the end user.
+Create an SNS topic in the `Resources` section of *serverless.yml*. This SNS topic is where *RequestRide* will publish messages to for containing information about the rides it has dispatched. These messages are intended to be processed by downstream services that do not need to run before the *Wild Rydes* user has been notified of their impending ride. This change increases the responsiveness of the application to the end user.
 
 The CloudFormation resource name (not the SNS Topic name) should be _RidesSnsTopic_. None of the CloudFormation resource's properties are required, including topic name.
 
@@ -812,7 +803,8 @@ How to trigger a Lambda function via an SNS event can be found here:
 +
  resources:
    Resources:
-     RideRecordTable:```
+     RideRecordTable:
+```
 </p>
 </details>
 
@@ -825,40 +817,73 @@ $ sls deploy -v
 
 ## Q&A
 
-### 1. Asynchronous Event Driven Architecture
+### Asynchronous Event Driven Architecture
 
-### 2. Refactoring
 
-Q. How might you reorder the steps in this workshop if you wanted to make incremental changes that you could deploy along the way instead of making one larger refactoring?
-
-The instructions in this module are meant to be easy to follow but aren't necessarily the best order of operations for refactoring an application. You can reorder these steps (and add additional steps) to you make incremental progress which makes tracking down mistakes easier.
 
 <details>
-<summary><strong>Output</strong></summary>
-
-1. Refactor handlers/put_ride_record.py in _wild-rydes-ride-record_ to create *handlers/put_ride_record.put_ride_record* and *handlers/put_ride_record.handler_http*
-1. Update PutRideRecord function to become PutRideRecordHttp in serverless.yml
-1. Deploy *wild-rydes-ride-record*
-1. Successfully request a ride
-1. Add SNS topic to _wild-rydes_ and export topic name to SSM Param store
-1. Deploy *wild-rydes*
-1. Create handlers/put_ride_record.handler_sns
-1. Create PutRideRecordSns function in serverless.yml
-1. Subscribe PutRideRecordSns function to _wild-rydes_ SNS topic
-1. Deploy *wild-rydes-ride-record*
-1. Refactor _RequestRide_ to publish to new SNS topic
-1. Deploy *wild-rydes* and request a ride
-
+<summary><strong>Answer</strong></summary>
 <p>
 </p>
 </details>
 
-Q. The retyr behavior of a Lambda function when it has failed is determined by the event type that triggered the function. [The different AWS Lambda retry behaviors are described in this documentation.](https://docs.aws.amazon.com/lambda/latest/dg/retries-on-errors.html) Explain the difference in reytry behavior between Lambda functions triggered by an SNS message and Lambda functions triggered by an API Gateway request.
+### Refactoring
 
-Q. EXTRA CREDIT: Calculate the overhead API Gateway causes on Wild Rydes.
+Q. How might you reorder the steps in this workshop if you wanted to make incremental changes? The instructions in this module are meant to be easy to follow but aren't necessarily the best order of operations for refactoring an application. The current steps result in messages being dropped and never making their way to _wild-rydes-ride-record_.
 
-### 3. Service Discovery
+You can reorder this workshop's steps (and add additional steps) so you make incremental progress which makes tracking down mistakes easier and doesn't result in dropped ride messages.
 
-Q. SSM parameter store...
+<details>
+<summary><strong>Answer</strong></summary>
+<p>
 
-```
+The following steps move back and forth between updating both _wild-rydes-ride-record_ and _wild-rydes_.
+
+1. In _wild-rydes-ride-record_
+   1. Refactor `handlers/put_ride_record.py` in _wild-rydes-ride-record_ to create `handlers/put_ride_record.put_ride_record` and `handlers/put_ride_record.handler_http`
+   1. Update `PutRideRecord` function to become `PutRideRecordHttp` in `serverless.yml`
+   1. Deploy *wild-rydes-ride-record*
+1. In _wild-rydes_
+   1. Add SNS topic to _wild-rydes_ and export topic name to SSM Param store
+   1. Deploy *wild-rydes*
+1. In _wild-rydes-ride-record_
+   1. Create `handlers/put_ride_record.handler_sns`
+   1. Create `PutRideRecordSns` function in `serverless.yml`
+   1. Subscribe `PutRideRecordSns` function to _wild-rydes_ SNS topic
+   1. Deploy *wild-rydes-ride-record*
+1. In _wild-rydes_
+   1. Refactor `RequestRide` to publish to new SNS topic
+   1. Deploy *wild-rydes* and request a ride
+
+</p>
+</details>
+
+Q. The retry behavior of a Lambda function when it has failed is determined by the event type that triggered the function. [The different AWS Lambda retry behaviors are described in this documentation.](https://docs.aws.amazon.com/lambda/latest/dg/retries-on-errors.html) Explain the difference in reytry behavior between Lambda functions triggered by an SNS message and Lambda functions triggered by an API Gateway request.
+
+<details>
+<summary><strong>Answer</strong></summary>
+<p>
+
+</p>
+</details>
+
+<!-- FIXME: Can we keep this?
+**EXTRA CREDIT:** Calculate the overhead API Gateway causes on Wild Rydes.
+-->
+
+### Service Discovery
+
+Q. In an AWS infrastructure that is evolving and changing, where services may move, be renamed, or be replaced, what are the limits of using SSM Parameter Store in the manner that we did where lookups for values are performed by Serverless Framework at deploy time?
+
+<details>
+<summary><strong>Answer</strong></summary>
+<p>
+Because the values of SSM parameters are resolved at deploy time, changes to those parameter values require an application to be redeployed.
+
+You can perform SSM lookups from inside your function but need to be aware of the added time to function duration and rate limits on SSM parameter lookups.
+</p>
+</details>
+
+<!-- FIXME: Can we keep this?
+Q. What is an alternative way to lookup SSM values that will handle change in the environment better?
+-->

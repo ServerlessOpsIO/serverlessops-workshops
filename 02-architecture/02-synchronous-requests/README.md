@@ -11,17 +11,34 @@ In this module we'll cover making synchronous requests in between Lambda functio
 
 ## Synchronous Requests
 
-In the previous module we noted how our architecture started as a traditional web microservices architecture and how some communication between services could be refactored into an asynchronous event driven architecture which results in faster responses to the user. But not every operation easily fits that pattern easily. And while continuing with a web microservices pattern using API Gateway and Lambda is just fine in many cases, it does add an additional cost (API Gateway requests are charged independent of Lambda invokations) and API Gateway can add additional request latency.
+In the previous module we noted how our architecture started as a traditional web microservices architecture and how some communication between services could be refactored into an asynchronous event driven architecture which results in faster responses to the user. But not every operation fits that pattern easily.
 
-One common operation is fetching data from a data store and returning it to a user. For example, this communication below where out application requests a unicorn from the fleet so it can tell the user who will be picking them up.
+*When you need to make synchronous requests in your serverless application, what do you do?*
+
+In *Wild Rydes* there's a request made between *wild-rydes* and *wild-rydes-fleet* to fetch a unicorn from the fleet. For simplicity we want to keep this a synchronous request. We can continue with our current architecture if we wished.
 
 ![API Gateway Request](../../images/wild-rydes-apig-request.png)
 
-While this can be done with an asynchronous event-driven architecture, that can be complex to implement and beyond the complexity required for what you're trying to accomplish. And as noted earlier API Gateway has potential minor drawbacks related to cost and latency. If you decide you want to make synchronous requests but it's advantageous for you to not use API Gateway then what do you do?
+Using API Gateway in front of a Lambda function has many benefits. For example:
 
-In this module we'll demonstrate how to have one Lambda function invoke another directly. Instead of an HTTP endpoint providing a stable interface to trigger our code, we will trigger a function handler directly using an [AWS SDK API for Lambda function invocation](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/lambda.html#Lambda.Client.invoke).
+* Authentication and authorization integration
+  * AWS Cognito
+  * Custom authorizers
+* Request throttling
+* AWS WAF integration for filtering malicous traffic.
+* Ability to generate API documentation
+
+While continuing with a web microservices pattern using API Gateway and Lambda is just fine in many cases, it does have its own set of drawbacks. Two of them are:
+
+* Additional cost
+  * API Gateway requests are charged independent of Lambda invocations
+* Added request latency.
+
+In this module we'll demonstrate how to bypass API Gateway and have one Lambda function invoke another directly for making a synchronus request. Instead of an HTTP endpoint providing a stable interface to trigger our code, we will trigger a function handler directly using an [AWS SDK API for Lambda function invocation](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/lambda.html#Lambda.Client.invoke). Depending on your needs, this can be a useful pattern for application.
 
 ![Lambda Invoke Request](../../images/wild-rydes-lambda-invoke.png)
+
+Which of the two patterns above is "the best"? You'll find lots of arguments in the AWS serverless community over which pattern you should use. But the simplest answer is this, *there is no answer to which pattern is "the best".* Which pattern you should use is based on the context of your needs and what you / your team / your organization values.
 
 ## Instructions
 
@@ -319,5 +336,63 @@ $ sls deploy -v
 As a last step, request a ride from the Wild Rydes frontend. If a unicorn appears and you receive no errors then you have completed these steps successfully.
 
 ## Q&A
+
+### API Gateway
+
+Q. Name benefits of using API Gateway.
+
+<details>
+<summary><strong>Hint</strong></summary>
+<p>
+
+* [How do you control authentication and authorization to your API?](https://docs.aws.amazon.com/apigateway/latest/developerguide/apigateway-use-lambda-authorizer.html)
+* [How do you handle controlling API usage and throttling](https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-request-throttling.html)
+* [AWS WAF for API Gateway](https://aws.amazon.com/blogs/compute/amazon-api-gateway-adds-support-for-aws-waf/)
+* [Documenting a REST API in API Gateway](https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-documenting-api.html)
+  </p>
+  </details>
+
+<details>
+<summary><strong>Answer</strong></summary>
+<p>
+
+* Authentication and authorization integration
+  * AWS Cognito
+  * Custom authorizers
+* Request throttling
+* AWS WAF integration for filtering malicous traffic.
+* Ability to generate API documentation
+  </p>
+  </details>
+
+Q. Name benefits of removing API Gateway.
+
+<details>
+<summary><strong>Hint</strong></summary>
+<p>
+
+* [AWS API Gateway pricing](https://aws.amazon.com/api-gateway/pricing/)
+* [AWS API Performance Comparison: Serverless vs. Containers vs. API Gateway integration](https://www.alexdebrie.com/posts/aws-api-performance-comparison/)
+  </p>
+  </details>
+
+<details>
+<summary><strong>Answer</strong></summary>
+<p>
+
+* Additional cost
+  * API Gateway requests are charged independent of Lambda invocations
+* Added request latency.
+  </p>
+  </details>
+
+Q. Which would you choose and why?
+
+<details>
+<summary><strong>Possible Answer</strong></summary>
+<p>
+Because where making a request between our own services we can do authentication and authorization, request throttling, and malicous traffic filtering at the user facing service, *wild-rydes*. And since we don't feel we would gain additional advanatges through those benefits of API Gateway on *wild-rydes-ride-fleet*, the cost and latency drawbacks make removing API Gateway appealing.
+</p>
+</details>
 
 **EXTRA CREDIT:** Refactor the *LoadTable* Lambda function and custom resource in *wild-rydes-ride-fleet* so it does not need API Gateway anymore.
