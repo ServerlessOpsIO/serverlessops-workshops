@@ -17,45 +17,54 @@ In this module we’ll increase load on the application to trigger a failure som
 
 __Objectives:__
 
-* Understand how to find failures and performance issues in our application.
+* Understand how to find failures in our application.
 * Understand how to instrument a function to obtain metrics, logs, and trace data.
 
-Goals:
+__Goals:__
 
 * Pinpoint application failure that is causing some suers to receive 500 errors.
 * Add the Thundra agent to Wyld Rydes applications.
 
-## Failure, Performance, and Instrumentation
-<!-- FIXME: Add content. Explain scenario. -->
-* How?
-* why?
-* Tools?
-  * Logging
-  * Monitoring
+## Serverless Failure And Function Instrumentation
+What we'll cover in this module is solving a routine application failure caused by an issue with one of the services. You will see how an error in one service might be discovered by issues found in a different service. It is important to remember that serverless applications composed of many services can become complex and often finding the cause of an issue might require traversing service boundaries. In addition, while the issues we'll be encountering in this module are common, focus on how we found the issues. The process and techniques we use to diagnose the cause of issues is far more important and will help you to solve an even larger variety of issues.
 
-## Scenario
-<!-- FIXME: Add content -->
+### Serverless Failure
+
+There are many ways a serverless application can fail. In this module you'll be presented with one of them... But you'll have to find what the failure is. Rather than presenting you with a canned set of failure modes, we're going to walk through the process of finding the cause of an unknown failure in this workshop. We also want you to see another important aspect of serverless application failures. The system where you observe the failure symptom may not be the service causing the failure.
+
+### Function Instrumentation
+Instrumentation allows us to collect data from our code as it runs so we can determine what it is doing. To instrument some of our code, we'll add the Thundra platform's Python module to the *wild-rydes* *RequestRide* function. By doing this we'll start collecting:
+
+* Function invocation metrics
+  * Function duration
+  * Memory usage
+  * CPU usage
+* Function tracing
+  * Duration of Python functions inside our Lambda function
+* Triggering event data
+* Function logs
+
+We'll use the data we gather to help us find where our application is failing.
 
 ## Tech Stack
 
-### Wild Rydes
-
 This workshop module will involve the following Wild Rydes services.
- * [wild-rydes-ride-record](https://github.com/ServerlessOpsIO/wild-rydes-ride-record): Service for recording rides requested.
- * [wild-rydes](https://github.com/ServerlessOpsIO/wild-rydes): Frontend website and ride request service.
+* [wild-rydes-ride-record](https://github.com/ServerlessOpsIO/wild-rydes-ride-record): Service for recording rides requested.
+* [wild-rydes](https://github.com/ServerlessOpsIO/wild-rydes): Frontend website and ride request service.
 
 *Note: if you've done the [Serverless Up and Running workshop](../../01-up-and-running/02-build-new-service) we'll be replacing what you've deployed with versions meant for this workshop. Without replacing your version with the version for this workshop certain steps may not succeed.*
 
-<!-- FIXME: Add diagram -->
+![Service Diagram](../../images/wild-rydes-and-ride-record.png)
 
 ### Tools
-<!-- FIXME: Add content -->
 
-#### Thundra
-<!-- FIXME: Add content -->
+To aid us in this module we'll be employing two tools. We'll use one to help us generate failures by automating requests to the service and another tool to help us find the cause of these failures.
 
 #### Artillery
-<!-- FIXME: Add content -->
+[Artillery](https://artillery.io/) is a load testing tool taht we will use to simulate traffic on our site. Using this tool we will trigger failures.
+
+#### Thundra
+[Thundra](https://thundra.io) is a serverless monitoring and observability platform designed for AWS Lambda environments. The platform will collect function invocation metrics and logs that will help us diagnose the cause of the issues we find.
 
 ## Instructions
 
@@ -293,7 +302,7 @@ added 266 packages in 6.101s
 </p>
 </details>
 
-Artillery will bypass the application frontend and directly call the API Gateway endoint in *wild-rydes* that triggers the *RequestRide* Lambda function. Start by getting the value of *ServiceEndpoint* from the *wild-rydes* stack outputs. Use `sls info -v` to obtain the value. You'll need this value so you know what API endpoint to target with Artillery.
+Artillery will bypass the application frontend and directly call the API Gateway endpoint in *wild-rydes* that triggers the *RequestRide* Lambda function. Start by getting the value of *ServiceEndpoint* from the *wild-rydes* stack outputs. Use `sls info -v` to obtain the value. You'll need this value so you know what API endpoint to target with Artillery.
 ```
 $ cd $WORKSHOP/wild-rydes
 $ sls info -v
@@ -338,7 +347,7 @@ The configuration file for Artillery will run the command for 3 minutes. You may
 $ artillery run -t <ServiceEndpoint> -c tests/artillery-high-load-config.yml tests/artillery.yml
 ```
 
-In the output under `Codes` section of the final report you should see HTTP 5XX codes
+In the output under the `Codes` section of the final report you should see HTTP 5XX codes
 
 ```
 All virtual users finished
@@ -372,13 +381,13 @@ Error codes:
 
 ### 3. Collect metrics and logs from *wild-rydes* *RequestRide*
 <!-- Start collecting traces and logs -->
-Start collecting metrics and logs from *RequestRide* in *wild-rydes* to the Thundra platform. We'll instrument this function by using the [Thundra Python agent](https://github.com/thundra-io/thundra-lambda-agent-python). (You;; instrument the Lambda functions in *wild-rydes-ride-record* in a later module.) By instrumenting the function we'll allow the Thundra platform to start collecting invocation metrics, logs, and trace the length of time spent performing different actions in the Lambda function's code.
+Start collecting metrics and logs from *RequestRide* in *wild-rydes* to the Thundra platform. We'll instrument this function by using the [Thundra Python agent](https://github.com/thundra-io/thundra-lambda-agent-python). (You'll instrument the Lambda functions in *wild-rydes-ride-record* in a later module.) By instrumenting the function we'll allow the Thundra platform to start collecting invocation metrics, logs, and trace the length of time spent performing different actions in the Lambda function's code.
 
-*NOTE: Thundra has the ability to automatically instrument functions through the Serverless Framework plugin [serverless-plugin-thundra](https://github.com/thundra-io/serverless-plugin-thundra). Thiw workshop indruments the function manually to demonstrate the actual work involved. We feel this is important for those coming to serverless without an extensive coding background. We want people to see how approachable this work is for non-developers.*
+*NOTE: Thundra has the ability to automatically instrument functions through the Serverless Framework plugin [serverless-plugin-thundra](https://github.com/thundra-io/serverless-plugin-thundra). This workshop insruments the function manually to demonstrate the actual work involved. We feel this is important for those coming to serverless without an extensive coding background. We want people to see how approachable this work is for non-developers.*
 
 #### Add Thundra module
 <!-- FIXME: Evaluate Thundra automated for time. -->
-Add the Thundra Python module to wild-rydes. By adding the module we allow Thundra to start collecting basic invocation metrics such as duration, memory usage, and CPU usage.
+Add the Thundra Python module to *wild-rydes*. By adding the module we allow Thundra to start collecting basic invocation metrics such as duration, memory usage, and CPU usage.
 
 <!-- install Python module -->
 Start by installing the Python module for Thundra.
@@ -430,6 +439,7 @@ You should consider upgrading via the 'pip install --upgrade pip' command.
 
 #### Update *serverless.yml*
 <!-- Add API key to serverless.yml -->
+<!-- FIXME: We might condense this to a single step. Maybe don't need param under custom section.-->
 Add the Thundra API key to the *serverless.yml* file. This API key is necessary for the Thundra agent to ship to the platform. You'll fetch the key value from AWS SSM Parameter Store where we've centrally stored it and then configure it be an environmental variable value in the Lambda function's runtime environment.
 
 In the *serverless.yml* file create the key *custom.thundraApiKey*. (You're creating a key called *thundraApiKey* under the *custom* key in the file.) The API key's value is stored in AWS SSM Parameter Store under the name `/thundra/root/api-key`. Use Serverless Framework's ability to lookup values in SSM Parameter Store to populate the key value.
@@ -699,6 +709,7 @@ Summary report @ 00:20:35(+0000) 2018-12-11
 ```
 
 ### 6. Look at failed invocations in Thundra
+<!-- FIXME: This needs finishing. -->
 <!-- we have two issues: 1) bad response from wild-rydes-ride-record, 2) retries to wild-rydes-ride-record cause RequestRide to timeout -->
 
 <!-- login -->
@@ -720,7 +731,7 @@ Filter your function invocations by changing the "FAULTY" value from "ALL" to "T
 <!-- FIXME: Add screenshot -->
 
 <!-- Investigate an invocation -->
-Look at one of the failed invocations. When looking at the trace chart, notice that *_post_ride_record()* takes the majority of the invocation time. The issue of this function timing out appears to stem from the function that communicates with the wild-rydes-ride-record service. We'll investigate this
+Look at one of the failed invocations. When looking at the trace chart, notice that *_post_ride_record()* takes the majority of the invocation time. The issue of this function timing out appears to stem from the function that communicates with the *wild-rydes-ride-record* service. We'll investigate this further.
 <!-- FIXME: Add screenshot -->
 
 <!-- FIXME: Can't find failed invocations! appears to be due to my raise of DDB error?
