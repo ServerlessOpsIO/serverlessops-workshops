@@ -55,7 +55,6 @@ provider:
   stage: "${opt:stage, env:SLS_STAGE, 'dev'}"
   region: "${opt:region, 'us-east-2'}"
   cfnRole: "arn:aws:iam::${env:AWS_ACCOUNT}:role/CloudFormationDeployRole"
-  profile: "${opt:aws-profile, env:AWS_PROFILE, env:AWS_DEFAULT_PROFILE, 'default'}"
 
 
 # Lambda functions are configured here.
@@ -139,7 +138,6 @@ provider:
   name: aws
   runtime: python3.6
   stage: "${opt:stage, env:SLS_STAGE, 'dev'}"
-  profile: "${opt:aws-profile, env:AWS_PROFILE, env:AWS_DEFAULT_PROFILE, 'default'}"
   region: "${opt:region, 'us-east-2'}"
   cfnRole: "arn:aws:iam::${env:AWS_ACCOUNT}:role/CloudFormationDeployRole"
   environment:
@@ -265,7 +263,6 @@ provider:
   name: aws
   runtime: python3.6
   stage: "${opt:stage, env:SLS_STAGE, 'dev'}"
-  profile: "${opt:aws-profile, env:AWS_PROFILE, env:AWS_DEFAULT_PROFILE, 'default'}"
   cfnRole: "arn:aws:iam::${env:AWS_ACCOUNT}:role/CloudFormationDeployRole"
   environment:
     LOG_LEVEL: "${env:LOG_LEVEL, 'INFO'}"
@@ -564,7 +561,6 @@ Now that _wild-rydes-ride-record_ is ready for use, _wild-rydes_ must send data 
 ```yaml
 custom:
   stage: "${opt:stage, env:SLS_STAGE, 'dev'}"
-  profile: "${opt:aws-profile, env:AWS_PROFILE, env:AWS_DEFAULT_PROFILE, 'default'}"
   log_level: "${env:LOG_LEVEL, 'INFO'}"
 
   request_unicorn_url: "${cf:wild-rydes-ride-fleet-${self:custom.stage}.RequestUnicornUrl}"

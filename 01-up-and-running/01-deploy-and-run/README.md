@@ -445,12 +445,11 @@ Serverless Framework has a variety of ways to declare variables.
 <summary><strong>Answer</strong></summary>
 <p>
 
-In the [serverless.yml]() file for _wild-rydes_ we lookup the RequestUnicornUrl CloudFormation stack output for the _wild-rydes-ride-fleet_ service.
+In the _serverless.yml_ file for _wild-rydes_ we lookup the RequestUnicornUrl CloudFormation stack output for the _wild-rydes-ride-fleet_ service.
 
 ```yaml
 custom:
   stage: "${opt:stage, env:SLS_STAGE, 'dev'}"
-  profile: "${opt:aws-profile, env:AWS_PROFILE, env:AWS_DEFAULT_PROFILE, 'default'}"
   log_level: "${env:LOG_LEVEL, 'INFO'}"
 
   request_unicorn_url: "${cf:wild-rydes-ride-fleet-${self:custom.stage}.RequestUnicornUrl}"
