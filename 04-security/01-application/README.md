@@ -22,7 +22,9 @@ We'll work to find and fix these issues.
 What we'll cover in this module are basic serverless application security issues. These are not highly sophisticated issues. But they are however common issues and technical requirements of serverless applications. These are low hanging fruit that routinely result in information exposure and other security incidents.
 
 ### Exposed API Endpoints / API Gateway Authorizers
-One common application security issue is publicly exposed APIs that don't require any authorization. This means anyone who can find the endpoint can probe it for data which can result in leaking potentially sensitive information. And it's not uncommon for APIs that are expected to only be consumed internally to not have access controls. However, unlike an AWS EC2 environment where there is a VPC and security groups that can provide network access controls, API Gateway can be restricted to a VPC but it will not be without extra setup. This means, *you might deploy an API on API Gateway intending it for internal use only but it is publicly exposed to the world while lacking adequate protection.*
+One common application security issue is publicly exposed APIs that don't require any authorization. This means anyone who can find the endpoint can probe it for data which can result in leaking potentially sensitive information. And it's not uncommon for APIs that are expected to only be consumed internally to not have access controls.
+
+However, unlike an AWS EC2 environment where there is a VPC and security groups that can provide network access controls, API Gateway can be restricted to a VPC but it will not be without extra setup. This means, *you might deploy an API on API Gateway intending it for internal use only but it is publicly exposed to the world while lacking adequate protection.*
 
 In Wild Rydes, none of our API endpoints have any form of authentication (*Am I who I say I am?*) and/or authorization (*Am I allowed to access this?*) checks. We're going to focus on the *wild-rydes-ride-fleet*.
 
@@ -410,6 +412,8 @@ Now look for and click the [![Known Vulnerabilities](https://snyk.io/test/github
 
 ## Q&A
 
+### Secrets Management
+
 Q. Our means of passing the API key to the *RequestRide* function is fine except it makes rotating the API key hard. Explain why.
 
 <details>
@@ -428,6 +432,43 @@ Q. What are the drawbacks of doing the parameter lookup in the Lambda function's
 
 A. This isn't a very fair question because the answers aren't well documented. Parameter Store will throttle API requests at a certain point which can result in your function failing. Additionally, expect a Parameter Store lookup to add about 20-30ms to the duration of every call.
 
-**Q. EXTRA CREDIT:** Reduce the number of calls to SSM Parameter Store by using [ssm-cache-python](https://github.com/alexcasalboni/ssm-cache-python) to provide value caching and aging. This helps prevent throttling of API requests and reduces function duration on average.
+**EXTRA CREDIT** Q. Reduce the number of calls to SSM Parameter Store by using [ssm-cache-python](https://github.com/alexcasalboni/ssm-cache-python) to provide value caching and aging. This helps prevent throttling of API requests and reduces function duration on average.
 
-**Q. EXTRA CREDIT:** Add API Gateway caching so less function invocations and DynamoDB lookups are made.
+### API Gateway Authorizers
+
+Q. We used a custom authorizer that invoked a Lambda function of ours to control access to our API. What are two other methods also mentioned in this workshop?
+
+<details>
+<summary><strong>Hint</strong></summary>
+<p>
+
+* One is an AWS service
+* One is a third-party SaaS service.
+</p>
+</details>
+
+<details>
+<summary><strong>Answer</strong></summary>
+<p>
+
+* [AWS Cognito](https://aws.amazon.com/cognito/)
+* [Auth0](https://auth0.com/)
+</p>
+</details>
+
+### Application Dependencies
+
+Q. How do you currently stay on top of third party application dependencies? (In particular dependencies not distributed by your OS provider such as Python, NodeJS, etc. dependencies.)
+
+<details>
+<summary><strong>Answer</strong></summary>
+<p>
+If you answered, "we don't", you're not alone. There are scanning services available that can scan your application at build time as well as services for managing application dependencies where security scanning is a feature.
+
+Companies providing some solutions are:
+
+* [Snyk](https://snyk.io/)
+* [Sonatype](https://www.sonatype.com/)
+* [WhiteSource](https://www.whitesourcesoftware.com/)
+</p>
+</details>
