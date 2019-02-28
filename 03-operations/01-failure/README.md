@@ -4,13 +4,6 @@
 Maybe this becomes metrics and monitoring?
 -->
 
-<!--
-Every instruction should follow
-* what to do
-* why to do it
-* how to do it.
--->
-
 In this module we’ll increase load on the application to trigger a failure somewhere in the application.
 
 ## Goals and Objectives
@@ -30,7 +23,7 @@ What we'll cover in this module is solving a routine application failure caused 
 
 ### Serverless Failure
 
-There are many ways a serverless application can fail. In this module you'll be presented with one of them... But you'll have to find what the failure is. Rather than presenting you with a canned set of failure modes, we're going to walk through the process of finding the cause of an unknown failure in this workshop. We also want you to see another important aspect of serverless application failures. The system where you observe the failure symptom may not be the service causing the failure.
+There are many ways a serverless application can fail. In this module you'll be presented with one of them. But you'll have to find what the failure is. Rather than presenting you with a canned set of failure modes, we're going to walk through the process of finding the cause of an unknown failure in this workshop. We also want you to see another important aspect of serverless application failures. The system where you observe the failure symptom may not be the service causing the failure.
 
 ### Function Instrumentation
 Instrumentation allows us to collect data from our code as it runs so we can determine what it is doing. To instrument some of our code, we'll add the Thundra platform's Python module to the *wild-rydes* *RequestRide* function. By doing this we'll start collecting:
@@ -65,6 +58,8 @@ To aid us in this module we'll be employing two tools. We'll use one to help us 
 
 #### Thundra
 [Thundra](https://thundra.io) is a serverless monitoring and observability platform designed for AWS Lambda environments. The platform will collect function invocation metrics and logs that will help us diagnose the cause of the issues we find.
+
+In this workshop we're using Thundra over AWS CloudWatch, which provides metrics and logging automatically for Lambda functions. We picked Thundra in part because we find it easier to navigate and illustreate what we want people to see. _(From a workshop perspective, we also use it because we don't to grant attendees AWS Console access in our accounts.)_
 
 ## Instructions
 
@@ -540,7 +535,7 @@ Add the Thundra logging handler. This way anytime we use Python's logging facili
 
  REQUEST_UNICORN_URL = os.environ.get('REQUEST_UNICORN_URL')
  RIDE_RECORD_URL = os.environ.get('RIDE_RECORD_URL')
- ```
+```
 
 #### Add tracing to *RequestRide* in wild-rydes
 <!-- Is there a performance impact? If so, how much? -->
@@ -744,12 +739,50 @@ Go back to the function screen, filter by your user, and click on the *PutRideRe
 
 ## Q&A
 
-### 2. Monitoring
+### Monitoring
 
-Q. What AWS service can you use for monitoring?
+Q. What AWS service can you use for metrics, logs, and alarms as an alternative to Thundra?
 
-Q. What alarms should be added?
-<!-- show how to add CloudWatch alarms. -->
+<details>
+<summary><strong>Answer</strong></summary>
+<p>
+
+
+[AWS CLoudWatch](https://aws.amazon.com/cloudwatch/) records metrics and logs for your Lambda functions by default without any additional instrumentation.
+
+</p>
+</details>    
+
+Q. What CloudWatch metric alarms should be add to be alerted of issues in *wild-rydes-ride-record* and why?
+<details>
+<summary><strong>Hint 1</strong></summary>
+<p>
+
+* [Lambda CloudWatch Metrics](https://docs.aws.amazon.com/lambda/latest/dg/monitoring-functions-metrics.html)
+* [DynamoDB Table Metrics](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/metrics-dimensions.html)
+  * [Monitoring DynamoDB with Amazon CloudWatch](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/monitoring-cloudwatch.html)
+</p>
+</details>
+
+<details>
+<summary><strong>Answer</strong></summary>
+<p>
+#### Lambda
+Key ketrics are:
+* Errors
+* Duration
+* Throttles
+
+#### DynamoDB
+Kery metrics are
+* SystemErrors
+* ReadThrottleEvents
+* WriteThrottleEvents
+* UserErrors (Useful for finding client errors.)
+</p>
+</details>
+
+### Instrumentation
 
 Q. In this workshop we manually instrumented our function to collect data from it. What is an alternative method of instrumenting functions?
 
