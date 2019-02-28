@@ -17,24 +17,24 @@ __Objectives:__
 ## Serverless Reliability
 <!-- FIXME: Add diagram of current arch and future arch -->
 
-We're now going to address the failures we saw in the first module.  In moving to an event-driven architecture for writing ride information to DynamoDB in the previous module, we hid the problems in our architecture from the user but we did solve them. This illustrates an issue in event-driven architectures. You may have failures down stream which need to be caught and handled because the triggering action has already finished. (eg. If recording the a ride fails we can't force the user to order a new one so we can trigger the process again.)
+We're now going to address the failures we saw in the first module.  In moving to an event-driven architecture for writing ride information to DynamoDB in the previous module, we hid the problems in our architecture from the user but we did solve them. This illustrates an issue in event-driven architectures. You may have failures down stream which need to be caught and handled because the triggering action has already finished. (eg. If recording a ride fails we can't force the user to order a new one so we can trigger the process again.)
 
 ### DynamoDB Scaling
 
-What we want to do in this module is first minimize the liklihood that DynamoDB writes fail. By default, DynamoDB tables use provisioned capacity for processing reads and writes. Capacity is measured in RCUs for reads and WCUs for writes. They are calcualted as follows:
+What we want to do in this module is first minimize the likelihood that DynamoDB writes fail. By default, DynamoDB tables use provisioned capacity for processing reads and writes. Capacity is measured in RCUs for reads and WCUs for writes. They are calculated as follows:
 
 * **Write capacity unit (WCU):** Each API call to write data to your table is a write request. For items up to 1 KB in size, one WCU can perform one *standard* write request per second. Items larger than 1 KB require additional WCUs. *Transactional* write requests require two WCUs to perform one write per second for items up to 1 KB. For example, a standard write request of a 1 KB item would require one WCU, a standard write request of a 3 KB item would require three WCUs, and a transactional write request of a 3 KB item would require six WCUs.
 * **Replicated write capacity unit (rWCU):** When using DynamoDB global tables, your data is written automatically to multiple AWS Regions of your choice. Each write occurs in the local region as well as the replicated regions. As a best practice, you should provision for an rWCU in each replicated region, times two. For example, if you have deployed a global table in US East (Ohio) and EU (Frankfurt) and you perform 5 writes per second to your global table, you should provision at least 20 rWCUs (5 writes x 2 regions x 2).
 
-To handle variable workloads DynamoDB provides two options. One is to configure auto-scaling for provisioned capacity. This is similar to EC2 auto-scaling. When WCUs or RCUs reach a certain threshold, additional capacity is provisioned. There is however a lag in when this njew capacity is available.
+To handle variable workloads DynamoDB provides two options. One is to configure auto-scaling for provisioned capacity. This is similar to EC2 auto-scaling. When WCUs or RCUs reach a certain threshold, additional capacity is provisioned. There is however a lag in when this new capacity is available.
 
-The second option is to configure on-demand capacity. While auto-scaling is less expensive than on-demand scaling, the delay in provisioning capacity can result in database operation failures which makes on-demand capacity ideal for non-predictable or spikey workloads.
+The second option is to configure on-demand capacity. While auto-scaling is less expensive than on-demand scaling, the delay in provisioning capacity can result in database operation failures which makes on-demand capacity ideal for non-predictable or spiky workloads.
 
-In this module we'll configure DynamoDB to use on-dmeand scaling. 
+In this module we'll configure DynamoDB to use on-demand scaling. 
 
 ### Lambda Dead Letter Queues
 
-Because it's still possible for DynamoDB writes to fail (the cloud is still unpredictible) we will also setup a dead letter queue for the *PutRideRecordSns* Lambda function. If the Lambda function fails to successfully complete after its retries are exhausted, the event will deposited to an SQS queue. This allows us to retry processing the event at a later point.
+Because it's still possible for DynamoDB writes to fail (the cloud is still unpredictable) we will also setup a dead letter queue for the *PutRideRecordSns* Lambda function. If the Lambda function fails to successfully complete after its retries are exhausted, the event will deposited to an SQS queue. This allows us to retry processing the event at a later point.
 
 ## Instructions
 ### 1. Add dead letter queue to _PutRideRecordSns_ in _wild-rydes-ride-record_
@@ -195,18 +195,18 @@ Provisioned capacity with auto-scaling is cheaper than on-demand capacity but ad
 </p>
 </details>
 
-Q. What sort of DynamoDB usage patterns are ideal provisioned capacity with auto-scaling? What sort of suage patterns are idea for on-demand capacity? *Think about uniformity of read and write access.*
+Q. What sort of DynamoDB usage patterns are ideal provisioned capacity with auto-scaling? What sort of usage patterns are idea for on-demand capacity? *Think about uniformity of read and write access.*
 <details>
 <summary><strong>Answer</strong></summary>
 <p>
-On-demand capacity is ideal for unpredictable or spikey workloads. In these situations auto-scaling may not provision capacity fast enough to keep up with demand.
+On-demand capacity is ideal for unpredictable or spiky workloads. In these situations auto-scaling may not provision capacity fast enough to keep up with demand.
 
-However, if there's little to no issue with latency of adding a record to DynamoDB, you could investigate letting write's fail, fall into the dead letter queue, and be processed after additional capacity has finished provisioning. But you should perform financial calculations to see if the savings of using provisioned capacity is worth it.
+However, if there's little to no issue with latency of adding a record to DynamoDB, you could investigate letting writes fail, fall into the dead letter queue, and be processed after additional capacity has finished provisioning. But you should perform financial calculations to see if the savings of using provisioned capacity is worth it.
 
 </p>
 </details>
 
-**EXTRA CREDIT** Q. You may find your traffic is predictible and also at a scale where the cost overhead of on-demand DynamoDB scaling makes configuring auto-scaling more appealing. Configure your DynamoDB table. Use the [serverless-dynamodb-autoscaling Serverless Framework plugin](https://github.com/sbstjn/serverless-dynamodb-autoscaling) to setup auto-scaling.
+**EXTRA CREDIT** Q. You may find your traffic is predictable and also at a scale where the cost overhead of on-demand DynamoDB scaling makes configuring auto-scaling more appealing. Configure your DynamoDB table. Use the [serverless-dynamodb-autoscaling Serverless Framework plugin](https://github.com/sbstjn/serverless-dynamodb-autoscaling) to setup auto-scaling.
 
 ### Dead Letter Queues
 

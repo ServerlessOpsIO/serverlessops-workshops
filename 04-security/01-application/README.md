@@ -296,7 +296,7 @@ aws ssm put-parameter --name /wild-rydes-ride-fleet/<USER#>/api_key --value <API
 <!-- We can split here if we want to -->
 
 ### 6. Update *wild-rydes* to use the *wild-rydes-ride-fleet* API key.
-Update *wild-rydes* to obtain the *wild-rydes-ride-fleet* API key and an use it when making requests for fleet members. You'll pass the SSM Parameter Store parameter name, NOT THE PARAMETER VALUE, to the function via an environmental variable. Your function will then fetch the parameter's value from Paramater Store. This is different than what we've done before! In other modules we've Serverless Framework lookup the value at deploy time. But here we want to keep the API key securely encrypted until the function is invoked. For that reason we're going to have the *RequestRide* Lambda function do the parameter value lookup instead of Serverless Framework.
+Update *wild-rydes* to obtain the *wild-rydes-ride-fleet* API key and an use it when making requests for fleet members. You'll pass the SSM Parameter Store parameter name, NOT THE PARAMETER VALUE, to the function via an environmental variable. Your function will then fetch the parameter's value from Parameter Store. This is different than what we've done before! In other modules we've Serverless Framework lookup the value at deploy time. But here we want to keep the API key securely encrypted until the function is invoked. For that reason we're going to have the *RequestRide* Lambda function do the parameter value lookup instead of Serverless Framework.
 
 #### Update *wild-rydes* _serverless.yml_
 Update the *serverless.yml* file. Below if a diff illustrating the changes to be made.

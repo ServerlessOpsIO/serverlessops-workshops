@@ -521,9 +521,9 @@ Add two AWS Config rules to *serverless.yml*, one to check for open read access 
 
 2) S3 public write prohibited:
 
-- CloudFormation resource name: *S3PublicWriteProhibitedConfigRule* 
+- CloudFormation resource name: *S3PublicWriteProhibitedConfigRule*
 
-- Config rule name: S3PublicWriteProhibitedConfigRule-${self:provider.stage}*
+- Config rule name: *S3PublicWriteProhibitedConfigRule-${self:provider.stage}*
   - Tacking the stage on allows for multiple deployments of this rule.
 - Scope
   - Resource types: *AWS::S3::Bucket*

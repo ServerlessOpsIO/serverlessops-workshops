@@ -293,8 +293,8 @@ Stack Outputs
 RequestRideLambdaFunctionQualifiedArn: arn:aws:lambda:us-east-1:144121712529:function:wild-rydes-dev-RequestRide:10
 StaticSiteConfigLambdaFunctionQualifiedArn: arn:aws:lambda:us-east-1:144121712529:function:wild-rydes-dev-StaticSiteConfig:10
 LoadTableLambdaFunctionQualifiedArn: arn:aws:lambda:us-east-1:144121712529:function:wild-rydes-dev-LoadTable:10
-StaticSiteS3BucketName: wild-rydes-dev.dev.training.serverlessops.io
-StaticSiteS3BucketWebsiteURL: http://wild-rydes-dev.dev.training.serverlessops.io
+StaticSiteS3BucketName: wild-rydes-user0.dev.training.serverlessops.io
+StaticSiteS3BucketWebsiteURL: http://wild-rydes-user0.dev.training.serverlessops.io
 ServiceEndpoint: https://o8gc4w4202.execute-api.us-east-1.amazonaws.com/dev
 ServerlessDeploymentBucketName: wild-rydes-dev-serverlessdeploymentbucket-fq6bas8nsgb0
 

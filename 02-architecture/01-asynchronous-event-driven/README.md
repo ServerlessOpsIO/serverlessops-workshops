@@ -25,13 +25,13 @@ In this architecture, the user makes a request for a ride to an API Gateway endp
 
 Let's take a few moments to examine this architecture and some inefficiencies in it. All the requests between service are made synchronously. Each time *RequestRide* makes a request to another service it waits for that request to complete by the other service responding back. For requesting a member of the ride fleet this makes sense because we expect *RequestRide* to return information about their ride to the user.
 
-On the other hand, the synchronous request to *wild-rides-ride-record* and *RecordRide* adds unnecessary time (and cost as API Gateway requests are billed separately from Lambda function invocations) to the user's request for a ride. From an engineering perspective, API Gateway adds additional overhead to the request in both terms of time and cost. From the view of the user, they are forced to wait for *wild-rydes-ride-record* to receive a request, trigger our Lambda function, write information to DynamnoDB, and return a response to the *wild-rydes* *RequestRide* function. However, none of those operations are relevant to the user as they use the *Wild Rydes* application.
+On the other hand, the synchronous request to *wild-rides-ride-record* and *RecordRide* adds unnecessary time (and cost as API Gateway requests are billed separately from Lambda function invocations) to the user's request for a ride. From an engineering perspective, API Gateway adds additional overhead to the request in both terms of time and cost. From the view of the user, they are forced to wait for *wild-rydes-ride-record* to receive a request, trigger our Lambda function, write information to DynamoDB, and return a response to the *wild-rydes* *RequestRide* function. However, none of those operations are relevant to the user as they use the *Wild Rydes* application.
 
 To improve the user's experience we'll convert the process of recording rides to an event driven architecture. Instead of synchronously making a web services request, *RequestRide* will emit an event which will trigger a new Lambda function in the *wild-rydes-ride-record* service. This is what our new architecture will look like.
 
 ![Service Diagram](../../images/wild-rydes-event-driven.png)
 
-Instead of *RequetRide* in the *wild-rydes* service making a web request to the *wild-rydes-ride-record* service to trigger the *RecordRide* Lambda function, *RequestRide* will publish a message to an SNS topic. The *wild-rydes-ride-record* service will have a function that is subscribed to the SNS topic which will write the ride data to DynamoDB. This will allow *RequetRide* to complete and return information to the user without needing to wait for our backend service to write to DynamoDB.
+Instead of *RequetRide* in the *wild-rydes* service making a web request to the *wild-rydes-ride-record* service to trigger the *RecordRide* Lambda function, *RequestRide* will publish a message to an SNS topic. The *wild-rydes-ride-record* service will have a function that is subscribed to the SNS topic which will write the ride data to DynamoDB. This will allow *RequestRide* to complete and return information to the user without needing to wait for our backend service to write to DynamoDB.
 
 ## Service Discovery
 
@@ -858,7 +858,7 @@ The following steps move back and forth between updating both _wild-rydes-ride-r
 </p>
 </details>
 
-Q. The retry behavior of a Lambda function when it has failed is determined by the event type that triggered the function. [The different AWS Lambda retry behaviors are described in this documentation.](https://docs.aws.amazon.com/lambda/latest/dg/retries-on-errors.html) Explain the difference in reytry behavior between Lambda functions triggered by an SNS message and Lambda functions triggered by an API Gateway request.
+Q. The retry behavior of a Lambda function when it has failed is determined by the event type that triggered the function. [The different AWS Lambda retry behaviors are described in this documentation.](https://docs.aws.amazon.com/lambda/latest/dg/retries-on-errors.html) Explain the difference in retry behavior between Lambda functions triggered by an SNS message and Lambda functions triggered by an API Gateway request.
 
 <details>
 <summary><strong>Answer</strong></summary>

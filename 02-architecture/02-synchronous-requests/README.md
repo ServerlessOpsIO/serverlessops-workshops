@@ -25,7 +25,7 @@ Using API Gateway in front of a Lambda function has many benefits. For example:
   * AWS Cognito
   * Custom authorizers
 * Request throttling
-* AWS WAF integration for filtering malicous traffic.
+* AWS WAF integration for filtering malicious traffic.
 * Ability to generate API documentation
 
 While continuing with a web microservices pattern using API Gateway and Lambda is just fine in many cases, it does have its own set of drawbacks. Two of them are:
@@ -91,9 +91,9 @@ Start by renaming the python function `handler()` to `handler_apig()` to indicat
 </p>
 </details>
 
-This refactoring is very easy in part because the `handler()` function previously only handled receiving the triggering event, some basic logging, calling `_get_unicorn()`, and responding to the event source. All the real work of fecthing a unicorn was done in `_get_unicorn()`. If you keep handler logic responsible for event source handling and the business logic of your Lambda function separate it becomes easy to add new or support multiple event sources.
+This refactoring is very easy in part because the `handler()` function previously only handled receiving the triggering event, some basic logging, calling `_get_unicorn()`, and responding to the event source. All the real work of fetching a unicorn was done in `_get_unicorn()`. If you keep handler logic responsible for event source handling and the business logic of your Lambda function separate it becomes easy to add new or support multiple event sources.
 
-#### Add Function and SSM Paramater to *serverless.yml*
+#### Add Function and SSM Parameter to *serverless.yml*
 Now add a new function to the _serverless.yml_ file. Rename the _RequestUnicorn_ function to _RequestUnicornApig_ and then change the handler value to `handlers/get_unicorn.handler_apig`. After that, make a copy of the function and rename it _RequestUnicornInvoke_, change the handler value to `handlers/get_unicorn.handler_invoke`, and remove the `event` key and the keys under it.
 
 Your _serverless.yml_ file should now have two functions which correspond to the two handlers you created in *handlers/get_unicorn.py*.
