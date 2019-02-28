@@ -598,7 +598,7 @@ $ aws configservice get-compliance-details-by-config-rule --config-rule-name <CO
         {
             "EvaluationResultIdentifier": {
                 "EvaluationResultQualifier": {
-                    "ConfigRuleName": "S3PublicWriteProhinitedConfigRule-training-dev",
+                    "ConfigRuleName": "S3PublicWriteProhinitedConfigRule-user0",
                     "ResourceType": "AWS::S3::Bucket",
                     "ResourceId": "wild-rydes-ride-data-lake-wildrydesdatalakebucket-1jhtjotdqf5bb"
                 },

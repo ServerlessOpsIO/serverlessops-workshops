@@ -455,7 +455,7 @@ In the *serverless.yml* file create the key *custom.thundraApiKey*. (You're crea
 +  thundraApiKey: "${ssm:/thundra/root/api-key}"
 +
    request_unicorn_url: "${cf:wild-rydes-ride-fleet-${self:custom.stage}.RequestUnicornUrl}"
-   ride_record_url: "${ssm:/wild-rydes-ride-record/training-dev/URL}"
+   ride_record_url: "${ssm:/wild-rydes-ride-record/${self:custom.stage}/URL}"
 
 ```
 </p>
